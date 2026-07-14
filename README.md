@@ -22,12 +22,10 @@ Tunggu sampai muncul pesan **"Successfully Running!"** — selesai.
 
 ## Akses Aplikasi
 
-| Service         | URL                                                           |
-| --------------- | ------------------------------------------------------------- |
-| **Laravel App** | http://localhost:8000                                         |
-| **Python API**  | http://localhost:8080                                         |
-| **API Docs**    | http://localhost:8080/docs                                    |
-| **MySQL**       | `localhost:3307` (user: `sijadwal` / pass: `sijadwal_secret`) |
+| Service         | URL                   |
+| --------------- | --------------------- |
+| **Laravel App** | http://localhost:8000 |
+| **MySQL**       | http://localhost:8081 |
 
 ### Default Login
 
@@ -39,7 +37,6 @@ Tunggu sampai muncul pesan **"Successfully Running!"** — selesai.
 | `kaprodi_rks`  | `rks123`    | Kaprodi RKS  |
 | `kaprodi_trm`  | `trm123`    | Kaprodi TRM  |
 | `kaprodi_trpl` | `trpl123`   | Kaprodi TRPL |
-
 
 ## Perintah Berguna
 
@@ -60,7 +57,7 @@ docker compose logs -f python-app
 # Rebuild setelah ubah kode
 docker compose up -d --build
 
-# Hapus semua container + DATABASE 
+# Hapus semua container + DATABASE
 docker compose down -v
 ```
 
