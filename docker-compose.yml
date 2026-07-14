@@ -1,6 +1,5 @@
 services:
 
-  # MySQL Database
   db:
     image: mysql:8.0
     container_name: sijadwal-db
@@ -23,8 +22,6 @@ services:
       retries: 20
       start_period: 30s
 
-
-  # Python Microservice (FastAPI + OR-Tools)
   python-app:
     build:
       context: ./sistem-penjadwalan-python
@@ -42,8 +39,6 @@ services:
       retries: 10
       start_period: 15s
 
-
-  # Laravel Application (PHP 8.2 + Apache)
   laravel-app:
     build:
       context: ./sistem-penjadwalan-laravel
@@ -73,6 +68,24 @@ services:
       timeout: 5s
       retries: 10
       start_period: 40s
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: sijadwal-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root_secret
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "8081:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sijadwal-net
 
 volumes:
   db_data:
