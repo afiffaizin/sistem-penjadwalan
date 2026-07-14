@@ -55,7 +55,9 @@ if [ "$USER_COUNT" = "0" ] || [ -z "$USER_COUNT" ]; then
     php artisan db:seed --force
 fi
 
-#  6. Cache config & views (route:cache skipped — app uses Closure middleware)
+#  6. Clear stale cache then rebuild (route:cache skipped — app uses Closure middleware)
+php artisan config:clear
+php artisan view:clear
 php artisan config:cache
 php artisan view:cache
 
