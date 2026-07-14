@@ -1,0 +1,74 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container mx-auto max-w-6xl">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-800 tracking-tight">Master Data: Kelas</h2>
+            <p class="text-gray-500 text-sm mt-1">Kelola data rombongan belajar mahasiswa per program studi.</p>
+        </div>
+        <a href="{{ route('kelas.create') }}" class="bg-amber-500 text-white px-5 py-2.5 rounded-lg shadow-sm shadow-amber-200 hover:bg-amber-600 font-medium transition flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i> Tambah Kelas
+        </a>
+    </div>
+
+    @if(session('success'))
+        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 flex items-center">
+            <i class="fa-solid fa-circle-check mr-3 text-green-500"></i> {{ session('success') }}
+        </div>
+    @endif
+
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
+                        <th class="px-6 py-4 w-16 text-center font-bold">No</th>
+                        <th class="px-6 py-4 font-bold">Nama Kelas</th>
+                        <th class="px-6 py-4 font-bold">Program Studi</th>
+                        <th class="px-6 py-4 font-bold">Tahun Ajar</th>
+                        <th class="px-6 py-4 text-center w-32 font-bold">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @forelse($kelasList as $index => $k)
+                        <tr class="hover:bg-amber-50/50 transition">
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $index + 1 }}</td>
+                            <td class="px-6 py-4 font-bold text-gray-800">{{ $k->nama }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100 text-xs font-semibold">
+                                    {{ $k->prodi->nama ?? 'Tidak Diketahui' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {{ $k->tahun_ajar->tahun ?? '-' }} ({{ $k->tahun_ajar->semester ?? '-' }})
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <div class="flex justify-center gap-3">
+                                    <a href="{{ route('kelas.edit', $k->id) }}" class="text-blue-500 hover:text-blue-700 transition" title="Edit">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </a>
+                                    <form action="{{ route('kelas.destroy', $k->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin ingin menghapus kelas ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-500 hover:text-red-700 transition" title="Hapus">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-10 text-gray-500">
+                                <i class="fa-solid fa-users text-4xl text-gray-300 mb-3 block"></i>
+                                Belum ada data Kelas.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@endsection
