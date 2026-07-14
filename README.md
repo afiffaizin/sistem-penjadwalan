@@ -38,7 +38,7 @@ Tunggu sampai muncul pesan **"Successfully Running!"** — selesai.
 | `kaprodi_trm`  | `trm123`    | Kaprodi TRM  |
 | `kaprodi_trpl` | `trpl123`   | Kaprodi TRPL |
 
-## Perintah Berguna
+## Perintah Docker
 
 ```bash
 # Stop semua container (data tetap aman)
