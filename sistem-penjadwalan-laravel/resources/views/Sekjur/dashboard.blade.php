@@ -151,7 +151,7 @@
                     }
                 }
             },
-            dataLabels: { enabled: false },
+            dataLabels: { enabled: false },git commit -m "fix: resolve HTTP 500 error on sekjur dashboard"
             legend: { show: false },
             stroke: { width: 0 }
         };
