@@ -16,9 +16,12 @@ COPY --from=builder /install /usr/local
 COPY . .
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN apt-get update && apt-get install -y --no-install-recommends dos2unix \
+    && dos2unix /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh \
+    && apt-get purge -y dos2unix && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 8000
 
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
