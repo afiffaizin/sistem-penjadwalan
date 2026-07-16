@@ -47,12 +47,14 @@ async def api_generate_jadwal(request: Request):
 
         data_pengampu = request_data.get("pengampu", [])
         data_ruangan = request_data.get("ruangan", [])
+        unavailable_days = request_data.get("unavailable_days", [])
 
         print(f"Total Pengampu diterima: {len(data_pengampu)}")
         print(f"Total Ruangan diterima: {len(data_ruangan)}")
+        print(f"Total Request Hari Tidak Bisa Mengajar diterima: {len(unavailable_days)}")
         print(" 3. MEMULAI PROSES OR-TOOLS ")
 
-        jadwal_final = generate_jadwal_or_tools(data_pengampu, data_ruangan)
+        jadwal_final = generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days)
 
         print("4. OR-TOOLS BERHASIL MENYELESAIKAN JADWAL! \n")
         return jadwal_final

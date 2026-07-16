@@ -1,7 +1,8 @@
 from ortools.sat.python import cp_model
 
-def generate_jadwal_or_tools(data_pengampu, data_ruangan):
+def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None):
     model = cp_model.CpModel()
+    unavailable_days = unavailable_days or []
 
     hari_kerja = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat']
     num_hari = len(hari_kerja)
@@ -122,6 +123,26 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan):
         valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
         for r in valid_rooms:
             model.Add(active_vars[(t['task_id'], r['id'], 4, 4)] == 0)
+
+    # C7: Dosen tidak boleh dijadwalkan pada hari yang direquest tidak bisa mengajar
+    hari_index = {hari: idx for idx, hari in enumerate(hari_kerja)}
+    unavailable_by_dosen = {}
+    for item in unavailable_days:
+        dosen_id = item.get('dosen_id')
+        hari = item.get('hari')
+        if dosen_id is not None and hari in hari_index:
+            unavailable_by_dosen.setdefault(int(dosen_id), set()).add(hari_index[hari])
+
+    for t in tasks:
+        blocked_days = unavailable_by_dosen.get(int(t['dosen_id']), set())
+        if not blocked_days:
+            continue
+
+        valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
+        for r in valid_rooms:
+            for d in blocked_days:
+                for s in range(num_sesi):
+                    model.Add(active_vars[(t['task_id'], r['id'], d, s)] == 0)
 
     # 4. SOLVER
     solver = cp_model.CpSolver()
