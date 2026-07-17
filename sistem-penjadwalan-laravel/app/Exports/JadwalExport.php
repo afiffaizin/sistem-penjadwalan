@@ -12,29 +12,13 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class JadwalExport implements FromView, WithStyles, WithEvents
 {
-    protected $request;
-    protected $matrixJadwal;
-    protected $matkulMandiri;
-    protected $totalSesi;
-    protected $hariKerja;
-
-    public function __construct($request, $matrixJadwal, $matkulMandiri, $totalSesi, $hariKerja)
+    public function __construct(protected array $data)
     {
-        $this->request = $request;
-        $this->matrixJadwal = $matrixJadwal;
-        $this->matkulMandiri = $matkulMandiri;
-        $this->totalSesi = $totalSesi;
-        $this->hariKerja = $hariKerja;
     }
 
     public function view(): View
     {
-        return view('exports.jadwal-excel', [
-            'matrixJadwal' => $this->matrixJadwal,
-            'matkulMandiri' => $this->matkulMandiri,
-            'totalSesi' => $this->totalSesi,
-            'hariKerja' => $this->hariKerja,
-        ]);
+        return view('exports.jadwal-excel', $this->data);
     }
 
     public function styles(Worksheet $sheet)
