@@ -23,4 +23,9 @@ class ProgramStudi extends Model
     {
         return $this->hasMany(Ruang::class, 'prodi_id');
     }
+
+    public function unavailableDays(): HasMany
+    {
+        return $this->hasMany(DosenUnavailableDay::class, 'prodi_id');
+    }
 }

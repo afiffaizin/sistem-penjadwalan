@@ -42,6 +42,11 @@
                 <span class="text-sm">Hasil Jadwal</span>
             </a>
 
+            <a href="{{ route('sekjur.unavailable-days') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition {{ request()->routeIs('sekjur.unavailable-days') ? 'bg-amber-500 text-white shadow-md shadow-amber-200/50' : 'text-gray-500 hover:bg-amber-50 hover:text-amber-600' }}">
+                <i class="fa-solid fa-calendar-xmark w-5 text-center text-lg"></i>
+                <span class="text-sm">Request Kaprodi</span>
+            </a>
+
             <div class="relative">
                 <button type="button" onclick="toggleMasterData()" class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl font-medium transition {{ request()->is('sekjur/master-data*') || request()->is('master-data*') || request()->is('kelas*','dosen*','prodi*','matkul*','ruang*') ? 'bg-amber-500 text-white shadow-md shadow-amber-200/50' : 'text-gray-500 hover:bg-amber-50 hover:text-amber-600' }}">
                     <div class="flex items-center gap-3">
@@ -91,6 +96,11 @@
             <a href="{{ route('kaprodi.jadwal') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition {{ request()->routeIs('kaprodi.jadwal') ? 'bg-amber-500 text-white shadow-md shadow-amber-200/50' : 'text-gray-500 hover:bg-amber-50 hover:text-amber-600' }}">
                 <i class="fa-solid fa-calendar-check w-5 text-center text-lg"></i>
                 <span class="text-sm">Jadwal Prodi</span>
+            </a>
+
+            <a href="{{ route('kaprodi.unavailable-days') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition {{ request()->routeIs('kaprodi.unavailable-days', 'kaprodi.unavailable-days.store') ? 'bg-amber-500 text-white shadow-md shadow-amber-200/50' : 'text-gray-500 hover:bg-amber-50 hover:text-amber-600' }}">
+                <i class="fa-solid fa-calendar-xmark w-5 text-center text-lg"></i>
+                <span class="text-sm">Hari Tidak Bisa Mengajar</span>
             </a>
 
         @endif

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dosen;
+use App\Models\DosenUnavailableDay;
 use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataKuliah;
@@ -190,6 +191,127 @@ class KaprodiController extends Controller
             'totalSesi',
             'hariKerja'
         ));
+    }
+
+    public function unavailableDays(Request $request)
+    {
+        $user = auth()->user();
+
+        if ($user->role !== 'kaprodi' || !$user->prodi_id) {
+            abort(403, 'Akses Ditolak.');
+        }
+
+        $hariKerja = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
+        $prodi = ProgramStudi::findOrFail($user->prodi_id);
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
+        $activeTahunAjar = TahunAjar::where('is_active', true)->first();
+        $selectedTahunAjarId = $request->input('tahun_ajar_id', $activeTahunAjar?->id);
+
+        $dosens = Dosen::whereHas('prodis', function ($query) use ($user) {
+                $query->where('program_studis.id', $user->prodi_id);
+            })
+            ->orderBy('nama')
+            ->get();
+
+        $requests = DosenUnavailableDay::with(['dosen', 'tahunAjar'])
+            ->where('prodi_id', $user->prodi_id)
+            ->when($selectedTahunAjarId, function ($query) use ($selectedTahunAjarId) {
+                $query->where('tahun_ajar_id', $selectedTahunAjarId);
+            })
+            ->get()
+            ->groupBy('dosen_id')
+            ->map(function ($items) {
+                return $items->pluck('hari')->toArray();
+            })
+            ->toArray();
+
+        return view('kaprodi.unavailable-days', compact(
+            'hariKerja',
+            'prodi',
+            'tahunAjars',
+            'selectedTahunAjarId',
+            'dosens',
+            'requests'
+        ));
+    }
+
+    public function storeUnavailableDays(Request $request)
+    {
+        $user = auth()->user();
+
+        if ($user->role !== 'kaprodi' || !$user->prodi_id) {
+            abort(403, 'Akses Ditolak.');
+        }
+
+        $validated = $request->validate([
+            'tahun_ajar_id' => ['required', 'exists:tahun_ajars,id'],
+            'hari' => ['nullable', 'array'],
+            'hari.*' => ['array'],
+            'hari.*.*' => ['in:Senin,Selasa,Rabu,Kamis,Jumat'],
+        ]);
+
+        $tahunAjarId = $validated['tahun_ajar_id'];
+        $hariByDosen = $validated['hari'] ?? [];
+        $allowedDosenIds = Dosen::whereHas('prodis', function ($query) use ($user) {
+                $query->where('program_studis.id', $user->prodi_id);
+            })
+            ->pluck('id')
+            ->toArray();
+
+        DosenUnavailableDay::where('prodi_id', $user->prodi_id)
+            ->where('tahun_ajar_id', $tahunAjarId)
+            ->whereIn('dosen_id', $allowedDosenIds)
+            ->delete();
+
+        foreach ($hariByDosen as $dosenId => $hariList) {
+            if (!in_array((int) $dosenId, $allowedDosenIds, true)) {
+                continue;
+            }
+
+            foreach (array_unique($hariList) as $hari) {
+                DosenUnavailableDay::create([
+                    'user_id' => $user->id,
+                    'dosen_id' => (int) $dosenId,
+                    'prodi_id' => $user->prodi_id,
+                    'tahun_ajar_id' => $tahunAjarId,
+                    'hari' => $hari,
+                ]);
+            }
+        }
+
+        return redirect()
+            ->route('kaprodi.unavailable-days', ['tahun_ajar_id' => $tahunAjarId])
+            ->with('success', 'Request hari tidak bisa mengajar berhasil disimpan.');
+    }
+
+    public function monitorUnavailableDays(Request $request)
+    {
+        $user = auth()->user();
+
+        if ($user->role !== 'sekretaris') {
+            abort(403, 'Akses Ditolak.');
+        }
+
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
+        $prodis = ProgramStudi::orderBy('nama')->get();
+        $dosens = Dosen::orderBy('nama')->get();
+
+        $requests = DosenUnavailableDay::with(['user', 'dosen', 'prodi', 'tahunAjar'])
+            ->when($request->filled('tahun_ajar_id'), function ($query) use ($request) {
+                $query->where('tahun_ajar_id', $request->tahun_ajar_id);
+            })
+            ->when($request->filled('prodi_id'), function ($query) use ($request) {
+                $query->where('prodi_id', $request->prodi_id);
+            })
+            ->when($request->filled('dosen_id'), function ($query) use ($request) {
+                $query->where('dosen_id', $request->dosen_id);
+            })
+            ->orderBy('tahun_ajar_id', 'desc')
+            ->orderBy('prodi_id')
+            ->orderBy('dosen_id')
+            ->get();
+
+        return view('sekjur.unavailable-days', compact('tahunAjars', 'prodis', 'dosens', 'requests'));
     }
 
     private function getWarna($matkulId)

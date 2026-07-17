@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\JadwalExport;
 use App\Models\Dosen;
 use App\Models\DosenMatkul;
+use App\Models\DosenUnavailableDay;
 use App\Models\Jadwal;
 use App\Models\Kelas;
 use App\Models\MataKuliah;
@@ -95,6 +96,17 @@ class JadwalController extends Controller
             ];
         })->toArray();
 
+        $unavailableDays = DosenUnavailableDay::where('tahun_ajar_id', $targetTahunAjarId)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'dosen_id' => $item->dosen_id,
+                    'hari' => $item->hari,
+                ];
+            })
+            ->values()
+            ->toArray();
+
         if (empty($pengampu) || empty($ruangan)) {
             return back()->with('error', 'Data Pengampu atau Ruangan pada semester ini masih kosong.');
         }
@@ -104,7 +116,8 @@ class JadwalController extends Controller
             $response = Http::timeout(400)
                 ->post(config('services.python.url') . '/api/generate-jadwal', [
                     'pengampu' => $pengampu,
-                    'ruangan' => $ruangan
+                    'ruangan' => $ruangan,
+                    'unavailable_days' => $unavailableDays,
                 ]);
 
             if ($response->failed()) {
