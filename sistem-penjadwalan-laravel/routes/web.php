@@ -49,6 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/jadwal/generate', [JadwalController::class, 'index'])->name('jadwal.index');
         Route::post('/jadwal/generate/process', [JadwalController::class, 'generate'])->name('jadwal.generate');
         Route::post('/jadwal/proses-ubah', [JadwalController::class, 'prosesUbahJadwal'])->name('jadwal.proses-ubah');
+        Route::get('/request-hari-tidak-mengajar', [KaprodiController::class, 'monitorUnavailableDays'])->name('sekjur.unavailable-days');
 
         Route::resource('users', UserController::class);
 
@@ -85,6 +86,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/dashboard', [KaprodiController::class, 'dashboard'])->name('kaprodi.dashboard');
         Route::get('/jadwal', [KaprodiController::class, 'lihatJadwal'])->name('kaprodi.jadwal');
+        Route::get('/hari-tidak-mengajar', [KaprodiController::class, 'unavailableDays'])->name('kaprodi.unavailable-days');
+        Route::post('/hari-tidak-mengajar', [KaprodiController::class, 'storeUnavailableDays'])->name('kaprodi.unavailable-days.store');
     });
 });
 
