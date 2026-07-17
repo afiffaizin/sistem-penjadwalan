@@ -11,6 +11,7 @@ use App\Models\MataKuliah;
 use App\Models\ProgramStudi;
 use App\Models\Ruang;
 use App\Models\TahunAjar;
+use App\Services\JadwalViewService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -162,134 +163,9 @@ class JadwalController extends Controller
         return $colors[$id % count($colors)];
     }
 
-    public function matrixjadwal(Request $request)
+    public function matrixjadwal(Request $request, JadwalViewService $jadwalViewService)
     {
-        $daftarTahunAjar = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
-
-        if ($request->filled('tahun_ajar_id')) {
-            $targetTahunAjarId = $request->tahun_ajar_id;
-        } else {
-            $activeTa = TahunAjar::where('is_active', true)->first();
-            $targetTahunAjarId = $activeTa ? $activeTa->id : null;
-        }
-
-        $activeTahunAjarIds = $targetTahunAjarId ? [$targetTahunAjarId] : [];
-
-        $dosenIds = Jadwal::whereIn('tahun_ajar_id', $activeTahunAjarIds)->distinct()->pluck('dosen_id');
-        $dosens = Dosen::whereIn('id', $dosenIds)->orderBy('nama')->get();
-        $kelas  = Kelas::orderBy('nama')->get();
-        $ruangs = Ruang::orderBy('nama')->get();
-        $prodis = ProgramStudi::orderBy('nama')->get();
-
-        $hariKerja = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-        $totalSesi = 8;
-        $matrixJadwal = [];
-
-        for ($s = 1; $s <= $totalSesi; $s++) {
-            foreach ($hariKerja as $hari) {
-                $matrixJadwal[$s][$hari] = [];
-            }
-        }
-
-        $matkulMandiri = collect();
-
-        // query filter jadwal
-        if (!empty($activeTahunAjarIds) && $request->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id'])) {
-
-            $query = Jadwal::with(['mata_kuliah', 'dosen', 'kelas', 'ruang'])
-                ->whereIn('tahun_ajar_id', $activeTahunAjarIds);
-
-            if ($request->filled('dosen_id')) $query->where('dosen_id', $request->dosen_id);
-            if ($request->filled('kelas_id')) $query->where('kelas_id', $request->kelas_id);
-            if ($request->filled('ruang_id')) $query->where('ruang_id', $request->ruang_id);
-
-            if ($request->filled('prodi_id')) {
-                $query->whereHas('kelas', function ($q) use ($request) {
-                    $q->where('prodi_id', $request->prodi_id);
-                });
-            }
-
-            $jadwals = $query->get();
-
-            foreach ($jadwals as $j) {
-                for ($s = $j->sesi_mulai; $s <= $j->sesi_selesai; $s++) {
-                    if ($s <= $totalSesi) {
-                        $matrixJadwal[$s][$j->hari][] = [
-                            'id'           => $j->id,
-                            'sesi_mulai'   => $j->sesi_mulai,
-                            'sesi_selesai' => $j->sesi_selesai,
-                            'hari'         => $j->hari,
-                            'mata_kuliah'  => $j->mata_kuliah->nama ?? '-',
-                            'dosen'        => $j->dosen->nama ?? '-',
-                            'kelas'        => $j->kelas->nama ?? '-',
-                            'ruang'        => $j->ruang->nama ?? '-',
-                            'jenis'        => isset($j->ruang->kategori) ? ucfirst($j->ruang->kategori) : '-',
-                            'warna'        => $this->getWarna($j->mata_kuliah_id ?? 0)
-                        ];
-                    }
-                }
-            }
-
-            if ($request->filled('kelas_id') || $request->filled('prodi_id')) {
-
-                $kelasTarget = Kelas::query();
-                if ($request->filled('kelas_id')) $kelasTarget->where('id', $request->kelas_id);
-                if ($request->filled('prodi_id')) $kelasTarget->where('prodi_id', $request->prodi_id);
-                $kelasDitemukan = $kelasTarget->get();
-
-                $mbkmGlobal = MataKuliah::where(function ($q) {
-                    $q->whereRaw("LOWER(nama) LIKE '%magang%'")
-                        ->orWhereRaw("LOWER(nama) LIKE '%tugas akhir%'")
-                        ->orWhereRaw("LOWER(nama) LIKE '%proyek keamanan%'");
-                })->get()->unique('nama');
-
-                foreach ($kelasDitemukan as $k) {
-                    $namaKelasLower = strtolower($k->nama);
-                    preg_match('/\d/', $k->nama, $matches);
-                    $tingkatAngka = isset($matches[0]) ? (int)$matches[0] : 0;
-                    $insertedMbkm = [];
-
-                    foreach ($mbkmGlobal as $mGlob) {
-                        $namaMatkulLower = strtolower($mGlob->nama);
-
-                        if (str_contains($namaKelasLower, 'rks')) {
-                            if ($tingkatAngka == 3 && (str_contains($namaMatkulLower, 'magang') || str_contains($namaMatkulLower, 'proyek keamanan'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                            if ($tingkatAngka == 4 && (str_contains($namaMatkulLower, 'tugas akhir') || str_contains($namaMatkulLower, 'akhir'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                        } elseif (str_contains($namaKelasLower, 'ti')) {
-                            if ($tingkatAngka == 3 && (str_contains($namaMatkulLower, 'tugas akhir') || str_contains($namaMatkulLower, 'akhir'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return view('jadwal.index', compact(
-            'dosens',
-            'kelas',
-            'ruangs',
-            'prodis',
-            'daftarTahunAjar',
-            'targetTahunAjarId',
-            'matrixJadwal',
-            'matkulMandiri',
-            'totalSesi',
-            'hariKerja'
-        ));
+        return view('jadwal.index', $jadwalViewService->build($request));
     }
 
     public function prosesUbahJadwal(Request $request)
@@ -383,233 +259,20 @@ class JadwalController extends Controller
         }
     }
 
-    public function exportExcel(Request $request)
+    public function exportExcel(Request $request, JadwalViewService $jadwalViewService)
     {
-        // 1. Ambil Tahun Ajar Aktif
-        $activeTahunAjarIds = TahunAjar::where('is_active', true)->pluck('id')->toArray();
-
-        // 2. Setup Struktur Matriks (Sesi 1-8, Senin-Jumat)
-        $hariKerja = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-        $totalSesi = 8;
-        $matrixJadwal = [];
-
-        for ($s = 1; $s <= $totalSesi; $s++) {
-            foreach ($hariKerja as $hari) {
-                $matrixJadwal[$s][$hari] = [];
-            }
-        }
-
-        $matkulMandiri = collect();
-
-        // 3. LOGIKA PENCARIAN
-        if ($request->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id'])) {
-
-            // --- A. QUERY JADWAL FISIK ---
-            $query = Jadwal::with(['mata_kuliah', 'dosen', 'kelas', 'ruang'])
-                ->whereIn('tahun_ajar_id', $activeTahunAjarIds);
-
-            if ($request->filled('dosen_id')) $query->where('dosen_id', $request->dosen_id);
-            if ($request->filled('kelas_id')) $query->where('kelas_id', $request->kelas_id);
-            if ($request->filled('ruang_id')) $query->where('ruang_id', $request->ruang_id);
-
-            if ($request->filled('prodi_id')) {
-                $query->whereHas('kelas', function ($q) use ($request) {
-                    $q->where('prodi_id', $request->prodi_id);
-                });
-            }
-
-            $jadwals = $query->get();
-
-            // Matriks Jadwal
-            foreach ($jadwals as $j) {
-                $startSesi = (int) $j->sesi_mulai;
-                $endSesi   = (int) $j->sesi_selesai;
-
-                for ($s = $startSesi; $s <= $endSesi; $s++) {
-                    if ($s <= $totalSesi && $s >= 1) {
-                        $matrixJadwal[$s][$j->hari][] = [
-                            'mata_kuliah' => $j->mata_kuliah->nama ?? '-',
-                            'dosen' => $j->dosen->nama ?? '-',
-                            'kelas' => $j->kelas->nama ?? '-',
-                            'ruang' => $j->ruang->nama ?? '-',
-                            'jenis' => isset($j->ruang->kategori) ? ucfirst($j->ruang->kategori) : '-',
-                            'warna' => $this->getWarna($j->mata_kuliah_id ?? 0)
-                        ];
-                    }
-                }
-            }
-
-            // QUERY MBKM / MANDIRI
-            if ($request->filled('kelas_id') || $request->filled('prodi_id')) {
-                $kelasTarget = Kelas::query();
-                if ($request->filled('kelas_id')) $kelasTarget->where('id', $request->kelas_id);
-                if ($request->filled('prodi_id')) $kelasTarget->where('prodi_id', $request->prodi_id);
-                $kelasDitemukan = $kelasTarget->get();
-
-                $mbkmGlobal = MataKuliah::where(function ($q) {
-                    $q->whereRaw("LOWER(nama) LIKE '%magang%'")
-                        ->orWhereRaw("LOWER(nama) LIKE '%tugas akhir%'")
-                        ->orWhereRaw("LOWER(nama) LIKE '%proyek keamanan%'");
-                })->get()->unique('nama');
-
-                foreach ($kelasDitemukan as $k) {
-                    $namaKelasLower = strtolower($k->nama);
-                    preg_match('/\d/', $k->nama, $matches);
-                    $tingkatAngka = isset($matches[0]) ? (int)$matches[0] : 0;
-                    $insertedMbkm = [];
-
-                    foreach ($mbkmGlobal as $mGlob) {
-                        $namaMatkulLower = strtolower($mGlob->nama);
-
-                        if (str_contains($namaKelasLower, 'rks')) {
-                            if ($tingkatAngka == 3 && (str_contains($namaMatkulLower, 'magang') || str_contains($namaMatkulLower, 'proyek keamanan'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                            if ($tingkatAngka == 4 && (str_contains($namaMatkulLower, 'tugas akhir') || str_contains($namaMatkulLower, 'akhir'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                        } elseif (str_contains($namaKelasLower, 'ti')) {
-                            if ($tingkatAngka == 3 && (str_contains($namaMatkulLower, 'tugas akhir') || str_contains($namaMatkulLower, 'akhir'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
+        $data = $jadwalViewService->build($request);
         $namaFile = 'Hasil_Jadwal_Kuliah_' . date('Y-m-d_H-i-s') . '.xlsx';
-        return Excel::download(new JadwalExport($request, $matrixJadwal, $matkulMandiri, $totalSesi, $hariKerja), $namaFile);
+
+        return Excel::download(new JadwalExport($data), $namaFile);
     }
 
-    public function exportPdf(Request $request)
+    public function exportPdf(Request $request, JadwalViewService $jadwalViewService)
     {
-        // 1. Ambil Tahun Ajar Aktif
-        $activeTahunAjarIds = TahunAjar::where('is_active', true)->pluck('id')->toArray();
-
-        // 2. Setup Struktur Matriks (Sesi 1-8, Senin-Jumat)
-        $hariKerja = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
-        $totalSesi = 8;
-        $matrixJadwal = [];
-
-        for ($s = 1; $s <= $totalSesi; $s++) {
-            foreach ($hariKerja as $hari) {
-                $matrixJadwal[$s][$hari] = [];
-            }
-        }
-
-        $matkulMandiri = collect();
-
-        // 3. LOGIKA PENCARIAN JADWAL
-        if ($request->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id'])) {
-
-            // QUERY JADWAL FISIK
-            $query = Jadwal::with(['mata_kuliah', 'dosen', 'kelas', 'ruang'])
-                ->whereIn('tahun_ajar_id', $activeTahunAjarIds);
-
-            if ($request->filled('dosen_id')) $query->where('dosen_id', $request->dosen_id);
-            if ($request->filled('kelas_id')) $query->where('kelas_id', $request->kelas_id);
-            if ($request->filled('ruang_id')) $query->where('ruang_id', $request->ruang_id);
-
-            if ($request->filled('prodi_id')) {
-                $query->whereHas('kelas', function ($q) use ($request) {
-                    $q->where('prodi_id', $request->prodi_id);
-                });
-            }
-
-            $jadwals = $query->get();
-
-            // SINKRONISASI MUTLAK: Masukkan hasil ke Matriks HANYA pada koordinat sesi_mulai (Tanpa Loop melar!)
-            foreach ($jadwals as $j) {
-
-                $sesiMulai   = (int) $j->sesi_mulai;
-                $sesiSelesai = (int) $j->sesi_selesai;
-
-                for ($s = $sesiMulai; $s <= $sesiSelesai; $s++) {
-
-                    if ($s >= 1 && $s <= $totalSesi) {
-
-                        $matrixJadwal[$s][$j->hari][] = [
-                            'id'           => $j->id,
-                            'mata_kuliah'  => $j->mata_kuliah->nama ?? '-',
-                            'dosen'        => $j->dosen->nama ?? '-',
-                            'kelas'        => $j->kelas->nama ?? '-',
-                            'ruang'        => $j->ruang->nama ?? '-',
-                            'jenis'        => isset($j->ruang->kategori) ? ucfirst($j->ruang->kategori) : '-',
-                            'sesi_mulai'   => $j->sesi_mulai,
-                            'sesi_selesai' => $j->sesi_selesai,
-                            'hari'         => $j->hari,
-                            'warna'        => $this->getWarna($j->mata_kuliah_id ?? 0)
-                        ];
-                    }
-                }
-            }
-
-            // --- B. QUERY MBKM / MANDIRI ---
-            if ($request->filled('kelas_id') || $request->filled('prodi_id')) {
-                $kelasTarget = Kelas::query();
-                if ($request->filled('kelas_id')) $kelasTarget->where('id', $request->kelas_id);
-                if ($request->filled('prodi_id')) $kelasTarget->where('prodi_id', $request->prodi_id);
-                $kelasDitemukan = $kelasTarget->get();
-
-                $mbkmGlobal = MataKuliah::where(function ($q) {
-                    $q->whereRaw("LOWER(nama) LIKE '%magang%'")
-                        ->orWhereRaw("LOWER(nama) LIKE '%tugas akhir%'")
-                        ->orWhereRaw("LOWER(nama) LIKE '%proyek keamanan%'");
-                })->get()->unique('nama');
-
-                foreach ($kelasDitemukan as $k) {
-                    $namaKelasLower = strtolower($k->nama);
-                    preg_match('/\d/', $k->nama, $matches);
-                    $tingkatAngka = isset($matches[0]) ? (int)$matches[0] : 0;
-                    $insertedMbkm = [];
-
-                    foreach ($mbkmGlobal as $mGlob) {
-                        $namaMatkulLower = strtolower($mGlob->nama);
-
-                        if (str_contains($namaKelasLower, 'rks')) {
-                            if ($tingkatAngka == 3 && (str_contains($namaMatkulLower, 'magang') || str_contains($namaMatkulLower, 'proyek keamanan'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                            if ($tingkatAngka == 4 && (str_contains($namaMatkulLower, 'tugas akhir') || str_contains($namaMatkulLower, 'akhir'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                        } elseif (str_contains($namaKelasLower, 'ti')) {
-                            if ($tingkatAngka == 3 && (str_contains($namaMatkulLower, 'tugas akhir') || str_contains($namaMatkulLower, 'akhir'))) {
-                                if (!in_array($namaMatkulLower, $insertedMbkm)) {
-                                    $matkulMandiri->push(['nama_matkul' => $mGlob->nama, 'nama_dosen' => 'Mandiri', 'kelas' => $k->nama]);
-                                    $insertedMbkm[] = $namaMatkulLower;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        $pdf = Pdf::loadView('exports.jadwal_pdf', compact(
-            'matrixJadwal',
-            'matkulMandiri',
-            'totalSesi',
-            'hariKerja'
-        ))->setPaper('a4', 'landscape');
-
+        $data = $jadwalViewService->build($request);
+        $pdf = Pdf::loadView('exports.jadwal_pdf', $data)->setPaper('a4', 'landscape');
         $namaFile = 'Hasil_Jadwal_Kuliah_' . date('Y-m-d_H-i-s') . '.pdf';
+
         return $pdf->download($namaFile);
     }
 }

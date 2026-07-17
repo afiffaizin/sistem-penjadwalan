@@ -2,6 +2,8 @@
 
 @section('content')
 @php
+    $jadwalDicari = request()->has('tahun_ajar_id') || request()->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id']);
+
     // MAPPING WARNA AGAR SAMA PERSIS DENGAN EXCEL DAN TIDAK TERBLOKIR TAILWIND
     $colorMap = [
         'bg-pink-200'   => '#fbcfe8',
@@ -54,7 +56,7 @@
                         </select>
                     </div>
                 
-                    @if(request()->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id']))
+                    @if($jadwalDicari)
                         @if(auth()->check() && auth()->user()->role === 'sekretaris')
                             <button type="button" @click="editMode = !editMode" 
                                     :class="editMode ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-100' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'" 
@@ -113,7 +115,7 @@
 
             <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4 pt-4 border-t border-gray-100">
                 <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                    @if(request()->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id']))
+                    @if($jadwalDicari)
                         <button type="submit" 
                                 formaction="{{ route('jadwal.export.excel') }}" 
                                 class="w-full sm:w-auto items-center justify-center gap-2 px-5 py-2.5 bg-green-50 text-green-700 border border-green-200 rounded-lg text-sm font-bold hover:bg-green-100 transition shadow-sm flex">
@@ -141,13 +143,13 @@
             </div>
         </form> </div>
 
-    @if(request()->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id']))
+    @if($jadwalDicari)
         
         @php
-            $hanyaFilterProdi = request()->filled('prodi_id') && !request()->filled('dosen_id') && !request()->filled('kelas_id') && !request()->filled('ruang_id');
+            // tampilPerKelas is passed from JadwalViewService
         @endphp
 
-        @if($hanyaFilterProdi)
+        @if($tampilPerKelas)
             @php
                 $kelasDitemukan = [];
                 for ($s = 1; $s <= $totalSesi; $s++) {
@@ -264,7 +266,7 @@
                         <i class="fa-solid fa-circle-exclamation text-2xl text-red-400"></i>
                     </div>
                     <h3 class="text-lg font-bold text-gray-700">Data Tidak Ditemukan</h3>
-                    <p class="text-gray-500 text-sm">Tidak ada kelas atau jadwal yang terdaftar untuk Program Studi ini.</p>
+                    <p class="text-gray-500 text-sm">Tidak ada kelas atau jadwal yang terdaftar untuk pilihan ini.</p>
                 </div>
             @endif
 

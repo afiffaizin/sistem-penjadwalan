@@ -1,5 +1,5 @@
 @php
-    $hanyaFilterProdi = request()->filled('prodi_id') && !request()->filled('dosen_id') && !request()->filled('kelas_id') && !request()->filled('ruang_id');
+    $hanyaFilterProdi = $tampilPerKelas ?? false;
 
     $colorMap = [
         'bg-pink-200'   => '#fbcfe8',
@@ -33,37 +33,8 @@
         sort($kelasDitemukan);
     @endphp
 
-            @php
-            // 1. GENERATE KETERANGAN FILTER UNTUK MODE MULTI-KELAS PRODI
-            $filterInfo = [];
-            if(request()->filled('prodi_id')) {
-                $prodi = \App\Models\ProgramStudi::find(request('prodi_id'));
-                $filterInfo[] = "Program Studi: " . ($prodi->nama ?? 'Umum');
-            }
-            if(request()->filled('tahun_ajar_id')) {
-                $ta = \App\Models\TahunAjar::find(request('tahun_ajar_id'));
-                if($ta) {
-                    $filterInfo[] = "Tahun Akademik: " . $ta->tahun . " (" . ucfirst($ta->semester) . ")";
-                }
-            }
-            $stringFilter = count($filterInfo) > 0 ? implode(' | ', $filterInfo) : 'Semua Jadwal Perkuliahan';
-        @endphp
-
     @foreach($kelasDitemukan as $namaKelas)
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
-            <thead>
-                <tr>
-                    <th colspan="6" style="font-weight: bold; font-size: 14px; text-align: center; color: #1e3a8a; border: none; background: none;">
-                        Jadwal Perkuliahan Jurusan Komputer dan Bisnis
-                    </th>
-                </tr>
-                <tr>
-                    <th colspan="6" style="font-style: italic; font-size: 11px; text-align: left; color: #475569; border: none; background: none; padding-bottom: 10px;">
-                        Kriteria Pencarian: {{ $stringFilter }}
-                    </th>
-                </tr>
-            </thead>
-        </table>
+        @include('exports.partials.jadwal-filter-header')
 
         <table style="border-collapse: collapse; width: 100%;">
             <thead>
@@ -134,47 +105,7 @@
 
 @else
     {{-- matriks 1 tabel aja --}}
-    @php
-        $filterInfo = [];
-        if(request()->filled('prodi_id')) {
-            $prodi = \App\Models\ProgramStudi::find(request('prodi_id'));
-            $filterInfo[] = "Program Studi: " . ($prodi->nama ?? 'Umum');
-        }
-        if(request()->filled('dosen_id')) {
-            $dosen = \App\Models\Dosen::find(request('dosen_id'));
-            $filterInfo[] = "Dosen: " . ($dosen->nama ?? '-');
-        }
-        if(request()->filled('kelas_id')) {
-            $kelasObj = \App\Models\Kelas::find(request('kelas_id'));
-            $filterInfo[] = "Kelas: " . ($kelasObj->nama ?? '-');
-        }
-        if(request()->filled('ruang_id')) {
-            $ruang = \App\Models\Ruang::find(request('ruang_id'));
-            $filterInfo[] = "Ruangan: " . ($ruang->nama ?? '-');
-        }
-        if(request()->filled('tahun_ajar_id')) {
-            $ta = \App\Models\TahunAjar::find(request('tahun_ajar_id'));
-            if($ta) {
-                $filterInfo[] = "Tahun Akademik: " . $ta->tahun . " (" . ucfirst($ta->semester) . ")";
-            }
-        }
-        $stringFilter = count($filterInfo) > 0 ? implode(' | ', $filterInfo) : 'Semua Jadwal Perkuliahan';
-    @endphp
-
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
-        <thead>
-            <tr>
-                <th colspan="6" style="font-weight: bold; font-size: 14px; text-align: center; color: #1e3a8a; border: none; background: none;">
-                    Jadwal Perkuliahan Jurusan Komputer dan Bisnis
-                </th>
-            </tr>
-            <tr>
-                <th colspan="6" style="font-style: italic; font-size: 11px; text-align: left; color: #475569; border: none; background: none; padding-bottom: 10px;">
-                    Kriteria Pencarian: {{ $stringFilter }}
-                </th>
-            </tr>
-        </thead>
-    </table>
+    @include('exports.partials.jadwal-filter-header')
 
     <table style="border-collapse: collapse; width: 1002px;">
         <thead>
