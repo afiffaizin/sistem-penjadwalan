@@ -162,6 +162,26 @@ class JadwalController extends Controller
         }
     }
 
+    public function deleteByTahunAjar(Request $request)
+    {
+        $tahunAjarId = $request->input('tahun_ajar_id');
+
+        if (!$tahunAjarId) {
+            return back()->with('error', 'Tahun Ajar tidak valid.');
+        }
+
+        try {
+            $jumlah = Jadwal::where('tahun_ajar_id', $tahunAjarId)->count();
+            Jadwal::where('tahun_ajar_id', $tahunAjarId)->delete();
+
+            return redirect()
+                ->route('jadwal.index', ['tahun_ajar_id' => $tahunAjarId])
+                ->with('success', "Berhasil menghapus {$jumlah} data jadwal untuk semester yang dipilih.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus jadwal: ' . $e->getMessage());
+        }
+    }
+
     private function getWarna($id)
     {
         $colors = [
