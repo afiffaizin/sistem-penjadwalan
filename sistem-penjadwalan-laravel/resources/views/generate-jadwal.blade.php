@@ -36,9 +36,23 @@
                     </div>
                 </div>
                 
-                <button type="button" onclick="mulaiGenerate()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 md:py-4 md:px-8 rounded-xl shadow-md shadow-amber-200 transition transform hover:-translate-y-1 flex items-center w-full md:w-auto justify-center self-end md:self-center">
-                    <i class="fa-solid fa-wand-magic-sparkles mr-2 text-xl"></i> Mulai Auto-Generate
-                </button>
+                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto self-end md:self-center">
+                    <button type="button" onclick="mulaiGenerate()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-amber-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-xl"></i> Mulai Auto-Generate
+                    </button>
+                    @if(isset($jadwalList) && count($jadwalList) > 0)
+                        <button type="button" onclick="hapusJadwal()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-red-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-trash text-lg"></i> Hapus Jadwal
+                        </button>
+                    @endif
+                </div>
+            </form>
+
+            {{-- Form tersembunyi khusus untuk aksi DELETE --}}
+            <form id="formHapusJadwal" action="{{ route('jadwal.delete') }}" method="POST" class="hidden">
+                @csrf
+                @method('DELETE')
+                <input type="hidden" name="tahun_ajar_id" id="hapus_tahun_ajar_id" value="{{ $tahunAjarAktif?->id }}">
             </form>
         </div>
 
@@ -160,6 +174,39 @@
         function gantiTahunAjar(id) {
             // Mengarahkan kembali ke halaman index dengan query string parameter tahun_ajar_id
             window.location.href = "{{ route('jadwal.index') }}?tahun_ajar_id=" + id;
+        }
+
+        function hapusJadwal() {
+            const select = document.getElementById('tahun_ajar_id');
+            const labelTahunAjar = select.options[select.selectedIndex].text.trim();
+
+            Swal.fire({
+                title: 'Hapus Seluruh Jadwal?',
+                html: `Anda akan menghapus <strong>semua data jadwal</strong> untuk:<br><span class="text-red-600 font-bold">${labelTahunAjar}</span><br><br>Tindakan ini <strong>tidak dapat dibatalkan</strong>. Lanjutkan?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#94a3b8',
+                confirmButtonText: '<i class="fa-solid fa-trash mr-1"></i> Ya, Hapus Sekarang!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Sinkronisasi ID tahun ajar ke form hapus
+                    document.getElementById('hapus_tahun_ajar_id').value = select.value;
+
+                    Swal.fire({
+                        title: 'Menghapus Data...',
+                        text: 'Mohon tunggu sebentar.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    document.getElementById('formHapusJadwal').submit();
+                }
+            });
         }
     </script>
 @endsection

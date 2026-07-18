@@ -74,7 +74,11 @@ class UploadExcelController extends Controller
         $fileContent = Storage::get('temp_data.json');
         $data = json_decode($fileContent, true);
 
-        $tahunUpload = session('upload_tahun', '2025/2026');
+        $y = (int) date('Y');
+        $m = (int) date('n');
+        $defaultTahun = ($m >= 7) ? "$y/" . ($y + 1) : ($y - 1) . "/$y";
+
+        $tahunUpload = session('upload_tahun', $defaultTahun);
         $semesterUpload = session('upload_semester', 'Gasal');
 
         DB::beginTransaction();
