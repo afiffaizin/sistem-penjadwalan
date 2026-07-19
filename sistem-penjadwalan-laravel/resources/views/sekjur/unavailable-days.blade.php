@@ -22,7 +22,7 @@
             </div>
             <div>
                 <label class="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Prodi</label>
-                <select name="prodi_id" class="w-full rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500">
+                <select name="prodi_id" class="select2-filter w-full rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500">
                     <option value="">Semua Prodi</option>
                     @foreach($prodis as $prodi)
                         <option value="{{ $prodi->id }}" {{ (string) request('prodi_id') === (string) $prodi->id ? 'selected' : '' }}>
@@ -33,7 +33,7 @@
             </div>
             <div>
                 <label class="block text-xs font-black text-gray-500 uppercase tracking-wider mb-2">Dosen</label>
-                <select name="dosen_id" class="w-full rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500">
+                <select name="dosen_id" class="select2-filter w-full rounded-xl border-gray-300 focus:border-amber-500 focus:ring-amber-500">
                     <option value="">Semua Dosen</option>
                     @foreach($dosens as $dosen)
                         <option value="{{ $dosen->id }}" {{ (string) request('dosen_id') === (string) $dosen->id ? 'selected' : '' }}>
