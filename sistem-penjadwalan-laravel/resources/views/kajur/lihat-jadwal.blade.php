@@ -24,7 +24,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Program Studi</label>
-                    <select name="prodi_id" id="filter_prodi" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
+                    <select name="prodi_id" id="filter_prodi" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
                         <option value="">-- Semua Prodi --</option>
                         @foreach($prodis as $p)
                             <option value="{{ $p->id }}" {{ request('prodi_id') == $p->id ? 'selected' : '' }}>{{ $p->nama }}</option>
@@ -33,7 +33,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Rombongan Kelas</label>
-                    <select name="kelas_id" id="filter_kelas" data-selected="{{ request('kelas_id') }}" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
+                    <select name="kelas_id" id="filter_kelas" data-selected="{{ request('kelas_id') }}" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
                         <option value="">-- Semua Kelas --</option>
                         @foreach($kelas as $k)
                             <option value="{{ $k->id }}" data-prodi="{{ $k->prodi_id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>
@@ -42,7 +42,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Dosen Pengajar</label>
-                    <select name="dosen_id" id="filter_dosen" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
+                    <select name="dosen_id" id="filter_dosen" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
                         <option value="">-- Semua Dosen --</option>
                         @foreach($dosens as $d)
                             <option value="{{ $d->id }}" {{ request('dosen_id') == $d->id ? 'selected' : '' }}>{{ $d->nama }}</option>
@@ -51,7 +51,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Ruangan</label>
-                    <select name="ruang_id" id="filter_ruang" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
+                    <select name="ruang_id" id="filter_ruang" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
                         <option value="">-- Semua Ruangan --</option>
                         @foreach($ruangs as $r)
                             <option value="{{ $r->id }}" {{ request('ruang_id') == $r->id ? 'selected' : '' }}>{{ $r->nama }}</option>
@@ -278,51 +278,63 @@
     
 </div>
 
+@push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const prodiSelect = document.getElementById('filter_prodi');
-        const kelasSelect = document.getElementById('filter_kelas');
+    $(document).ready(function() {
+        const $prodiSelect = $('#filter_prodi');
+        const $kelasSelect = $('#filter_kelas');
         
-        const kelasOptions = Array.from(kelasSelect.options);
+        // Store all original kelas options as data
+        const allKelasOptions = [];
+        $('#filter_kelas option').each(function() {
+            allKelasOptions.push({
+                value: $(this).val(),
+                text: $(this).text(),
+                prodi: $(this).data('prodi') ? String($(this).data('prodi')) : ''
+            });
+        });
 
-        // Fungsi utama untuk memfilter dropdown
+        const savedKelasValue = $kelasSelect.data('selected') || '';
+
         function filterKelas() {
-            const selectedProdi = prodiSelect.value;
-            const currentlySelectedKelas = kelasSelect.getAttribute('data-selected') || kelasSelect.value;
+            const selectedProdi = $prodiSelect.val();
 
-            kelasSelect.innerHTML = '';
+            // Destroy existing Select2 before modifying options
+            if ($kelasSelect.hasClass('select2-hidden-accessible')) {
+                $kelasSelect.select2('destroy');
+            }
 
-            // 2. Masukkan kembali opsi yang sesuai aturan
-            let isCurrentSelectionValid = false;
-            
-            kelasOptions.forEach(option => {
-                const prodiOfKelas = option.getAttribute('data-prodi');
-                
-                if (!selectedProdi || option.value === '' || prodiOfKelas === selectedProdi) {
-                    kelasSelect.appendChild(option.cloneNode(true));
-                    
-                    if(option.value === currentlySelectedKelas) {
-                        isCurrentSelectionValid = true;
-                    }
+            $kelasSelect.empty();
+
+            allKelasOptions.forEach(function(opt) {
+                if (!selectedProdi || opt.value === '' || opt.prodi === selectedProdi) {
+                    $kelasSelect.append(new Option(opt.text, opt.value));
                 }
             });
 
-            // 3. Kembalikan status pilihan ('selected') sebelumnya jika masih relevan
-            if (isCurrentSelectionValid) {
-                kelasSelect.value = currentlySelectedKelas;
+            // Restore saved value if still valid
+            if (savedKelasValue && $kelasSelect.find('option[value="' + savedKelasValue + '"]').length) {
+                $kelasSelect.val(savedKelasValue);
             } else {
-                kelasSelect.value = '';
+                $kelasSelect.val('');
             }
+
+            // Re-initialize Select2
+            $kelasSelect.select2({
+                placeholder: '-- Semua Kelas --',
+                allowClear: true,
+                width: '100%'
+            });
         }
 
-        // Jalankan filter setiap kali dropdown Prodi diubah
-        prodiSelect.addEventListener('change', function() {
-            kelasSelect.setAttribute('data-selected', ''); 
+        // Listen for Select2's change event on prodi
+        $prodiSelect.on('change', function() {
             filterKelas();
         });
 
-        // jalankan saat reload atau refresh
+        // Initial filter on page load
         filterKelas();
     });
 </script>
+@endpush
 @endsection

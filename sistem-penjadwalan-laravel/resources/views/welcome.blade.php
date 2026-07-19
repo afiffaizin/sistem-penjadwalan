@@ -7,6 +7,77 @@
     <title>SI Penjadwalan</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        /* Select2 Custom Styling */
+        .select2-container--default .select2-selection--single {
+            height: 42px;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background-color: #fff;
+            padding: 6px 12px;
+            font-size: 0.875rem;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .select2-container--default .select2-selection--single:hover {
+            border-color: #f59e0b;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--single,
+        .select2-container--default.select2-container--open .select2-selection--single {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
+            outline: none;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 28px;
+            padding-left: 0;
+            color: #1f2937;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px;
+            right: 8px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #6b7280;
+        }
+        .select2-dropdown {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.08);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+        }
+        .select2-container--default .select2-search--dropdown .select2-search__field:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+        }
+        .select2-container--default .select2-results__option {
+            padding: 8px 12px;
+            font-size: 0.875rem;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #f59e0b;
+            color: #fff;
+        }
+        .select2-container--default .select2-results__option[aria-selected=true] {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans antialiased min-h-screen flex flex-col">
 
@@ -78,7 +149,7 @@
                         
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Program Studi</label>
-                            <select name="prodi_id" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white cursor-pointer">
+                            <select name="prodi_id" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white cursor-pointer">
                                 <option value="">-- Semua Prodi --</option>
                                 @foreach($prodis as $p)
                                     <option value="{{ $p->id }}" {{ request('prodi_id') == $p->id ? 'selected' : '' }}>{{ $p->nama }}</option>
@@ -88,7 +159,7 @@
 
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Dosen Pengajar</label>
-                            <select name="dosen_id" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white cursor-pointer">
+                            <select name="dosen_id" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white cursor-pointer">
                                 <option value="">-- Semua Dosen --</option>
                                 @foreach($dosens as $d)
                                     <option value="{{ $d->id }}" {{ request('dosen_id') == $d->id ? 'selected' : '' }}>{{ $d->nama }}</option>
@@ -98,7 +169,7 @@
 
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Kelas</label>
-                            <select name="kelas_id" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white cursor-pointer">
+                            <select name="kelas_id" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white cursor-pointer">
                                 <option value="">-- Semua Kelas --</option>
                                 @foreach($kelas as $k)
                                     <option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>
@@ -108,7 +179,7 @@
 
                         <div>
                             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Ruangan</label>
-                            <select name="ruang_id" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white cursor-pointer">
+                            <select name="ruang_id" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white cursor-pointer">
                                 <option value="">-- Semua Ruangan --</option>
                                 @foreach($ruangs as $r)
                                     <option value="{{ $r->id }}" {{ request('ruang_id') == $r->id ? 'selected' : '' }}>{{ $r->nama }}</option>
@@ -353,5 +424,20 @@
             &copy; {{ date('Y') }} Sistem Informasi Penjadwalan Perkuliahan JKB. All rights reserved.
         </div>
     </footer>
+
+    <!-- jQuery + Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.select2-filter').each(function() {
+                $(this).select2({
+                    placeholder: $(this).find('option[value=""]').text() || 'Pilih...',
+                    allowClear: true,
+                    width: '100%'
+                });
+            });
+        });
+    </script>
     </body>
 </html>
