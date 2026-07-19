@@ -144,6 +144,48 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 for s in range(num_sesi):
                     model.Add(active_vars[(t['task_id'], r['id'], d, s)] == 0)
 
+    # C8: Teori harus dijadwalkan SEBELUM Praktikum (untuk matkul yang punya keduanya)
+    # Kelompokkan task berdasarkan pengampu_id untuk menemukan pasangan Teori + Praktikum
+    tasks_by_pengampu = {}
+    for t in tasks:
+        tasks_by_pengampu.setdefault(t['pengampu_id'], []).append(t)
+
+    for pengampu_id, group in tasks_by_pengampu.items():
+        teori_task = next((t for t in group if t['jenis'] == 'teori'), None)
+        praktikum_task = next((t for t in group if t['jenis'] == 'praktikum'), None)
+
+        # Hanya berlaku jika matkul tersebut memiliki KEDUA komponen
+        if teori_task is None or praktikum_task is None:
+            continue
+
+        # Buat variabel waktu linear untuk setiap task: waktu = hari * num_sesi + sesi_mulai
+        # Variabel waktu teori
+        teori_time = model.NewIntVar(0, num_hari * num_sesi - 1, f"time_{teori_task['task_id']}")
+        valid_rooms_teori = [r for r in data_ruangan if r.get('kategori', '').lower() == 'teori']
+        teori_contributions = []
+        for r in valid_rooms_teori:
+            for d in range(num_hari):
+                for s in range(num_sesi):
+                    if (teori_task['task_id'], r['id'], d, s) in start_vars:
+                        time_val = d * num_sesi + s
+                        teori_contributions.append(start_vars[(teori_task['task_id'], r['id'], d, s)] * time_val)
+        model.Add(teori_time == sum(teori_contributions))
+
+        # Variabel waktu praktikum
+        praktikum_time = model.NewIntVar(0, num_hari * num_sesi - 1, f"time_{praktikum_task['task_id']}")
+        valid_rooms_praktikum = [r for r in data_ruangan if r.get('kategori', '').lower() == 'praktikum']
+        praktikum_contributions = []
+        for r in valid_rooms_praktikum:
+            for d in range(num_hari):
+                for s in range(num_sesi):
+                    if (praktikum_task['task_id'], r['id'], d, s) in start_vars:
+                        time_val = d * num_sesi + s
+                        praktikum_contributions.append(start_vars[(praktikum_task['task_id'], r['id'], d, s)] * time_val)
+        model.Add(praktikum_time == sum(praktikum_contributions))
+
+        # Constraint: waktu teori harus LEBIH AWAL dari waktu praktikum
+        model.Add(teori_time < praktikum_time)
+
     # 4. SOLVER
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 240.0 
