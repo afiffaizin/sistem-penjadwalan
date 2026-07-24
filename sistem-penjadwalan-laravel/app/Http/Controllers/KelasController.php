@@ -9,10 +9,19 @@ use Illuminate\Http\Request;
 
 class KelasController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $kelasList = Kelas::with(['prodi', 'tahun_ajar'])->orderBy('nama', 'asc')->get();
-        return view('master-data.kelas.index', compact('kelasList'));
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'asc')->get();
+        
+        $query = Kelas::with(['prodi', 'tahun_ajar'])->orderBy('nama', 'asc');
+        
+        if ($request->filled('tahun_ajar_id')) {
+            $query->where('tahun_ajar_id', $request->tahun_ajar_id);
+        }
+        
+        $kelasList = $query->get();
+        
+        return view('master-data.kelas.index', compact('kelasList', 'tahunAjars'));
     }
 
     public function create()
