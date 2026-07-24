@@ -18,6 +18,32 @@
         </div>
     @endif
 
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <form method="GET" action="{{ route('dosen.index') }}" class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+                <label class="text-sm font-bold text-gray-700 whitespace-nowrap">Filter Tahun Akademik:</label>
+                <select name="tahun_ajar_id" class="w-full sm:w-64 rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500">
+                    <option value="">Semua Tahun Akademik</option>
+                    @foreach($tahunAjars as $ta)
+                        <option value="{{ $ta->id }}" {{ (string) request('tahun_ajar_id') === (string) $ta->id ? 'selected' : '' }}>
+                            {{ $ta->tahun }} ({{ ucfirst($ta->semester) }}) {{ $ta->is_active ? ' - [Aktif]' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+                <div class="flex items-center gap-2">
+                    <button type="submit" class="bg-amber-500 text-white px-4 py-2 rounded-lg shadow-sm shadow-amber-200 hover:bg-amber-600 font-medium text-sm transition flex items-center gap-2">
+                        <i class="fa-solid fa-filter"></i> Filter
+                    </button>
+                    @if(request('tahun_ajar_id'))
+                        <a href="{{ route('dosen.index') }}" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium text-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-rotate-left"></i> Reset
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </form>
+    </div>
+
     <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
         <div class="overflow-x-auto">
             <table class="min-w-full text-left border-collapse">
@@ -26,8 +52,8 @@
                         <th class="px-6 py-4 w-16 text-center font-bold">No</th>
                         <th class="px-6 py-4 font-bold">Kode Dosen</th>
                         <th class="px-6 py-4 font-bold">Nama Lengkap</th>
-                        {{-- <th class="px-6 py-4 font-bold">NIDN</th> --}}
                         <th class="px-6 py-4 font-bold">NIP</th>
+                        <th class="px-6 py-4 font-bold">Tahun Ajar</th>
                         <th class="px-6 py-4 text-center w-32 font-bold">Aksi</th>
                     </tr>
                 </thead>
@@ -37,8 +63,10 @@
                             <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $index + 1 }}</td>
                             <td class="px-6 py-4 font-bold text-amber-600">{{ $d->kode_dosen }}</td>
                             <td class="px-6 py-4 font-semibold text-gray-800">{{ $d->nama }}</td>
-                            {{-- <td class="px-6 py-4 text-sm text-gray-600">{{ $d->nidn ?? '-' }}</td> --}}
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $d->nip ?? '-' }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {{ $d->tahunAjar ? $d->tahunAjar->tahun . ' (' . $d->tahunAjar->semester . ')' : 'Master Umum' }}
+                            </td>
                             <td class="px-6 py-4 text-center">
                                 <div class="flex justify-center gap-3">
                                     <a href="{{ route('dosen.edit', $d->id) }}" class="text-blue-500 hover:text-blue-700 transition" title="Edit">

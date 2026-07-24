@@ -3,14 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Models\Dosen;
+use App\Models\TahunAjar;
 use Illuminate\Http\Request;
 
 class DosenController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $dosens = Dosen::orderBy('nama', 'asc')->get();
-        return view('master-data.dosen.index', compact('dosens'));
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'asc')->get();
+
+        $query = Dosen::with('tahunAjar')->orderBy('nama', 'asc');
+
+        if ($request->filled('tahun_ajar_id')) {
+            $query->where('tahun_ajar_id', $request->tahun_ajar_id);
+        }
+
+        $dosens = $query->get();
+
+        return view('master-data.dosen.index', compact('dosens', 'tahunAjars'));
     }
 
     public function create()

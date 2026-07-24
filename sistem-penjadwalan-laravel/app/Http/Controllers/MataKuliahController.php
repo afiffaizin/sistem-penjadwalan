@@ -4,14 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\MataKuliah;
 use App\Models\ProgramStudi;
+use App\Models\TahunAjar;
 use Illuminate\Http\Request;
 
 class MataKuliahController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $matkulList = MataKuliah::with('prodi')->get();
-        return view('master-data.matkul.index', compact('matkulList'));
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'asc')->get();
+
+        $query = MataKuliah::with(['prodi', 'tahunAjar'])->orderBy('nama', 'asc');
+
+        if ($request->filled('tahun_ajar_id')) {
+            $query->where('tahun_ajar_id', $request->tahun_ajar_id);
+        }
+
+        $matkulList = $query->get();
+
+        return view('master-data.matkul.index', compact('matkulList', 'tahunAjars'));
     }
 
     public function create()

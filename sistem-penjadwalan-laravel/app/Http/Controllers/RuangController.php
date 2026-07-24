@@ -4,14 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\Ruang;
 use App\Models\ProgramStudi;
+use App\Models\TahunAjar;
 use Illuminate\Http\Request;
 
 class RuangController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $ruangList = Ruang::with('prodi')->orderBy('nama', 'asc')->get();
-        return view('master-data.ruang.index', compact('ruangList'));
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'asc')->get();
+
+        $query = Ruang::with(['prodi', 'tahunAjar'])->orderBy('nama', 'asc');
+
+        if ($request->filled('tahun_ajar_id')) {
+            $query->where('tahun_ajar_id', $request->tahun_ajar_id);
+        }
+
+        $ruangList = $query->get();
+
+        return view('master-data.ruang.index', compact('ruangList', 'tahunAjars'));
     }
 
     public function create()
