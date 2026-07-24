@@ -76,8 +76,6 @@ services:
     environment:
       PMA_HOST: db
       PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: root_secret
       UPLOAD_LIMIT: 64M
     ports:
       - "8081:80"
