@@ -7,10 +7,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Ruang extends Model
 {
-    protected $fillable = [ 'nama', 'kategori', 'prodi_id'];
+    protected $fillable = ['nama', 'kategori', 'prodi_id', 'tahun_ajar_id'];
 
     public function prodi(): BelongsTo
     {
         return $this->belongsTo(ProgramStudi::class, 'prodi_id');
+    }
+
+    public function tahunAjar(): BelongsTo
+    {
+        return $this->belongsTo(TahunAjar::class);
     }
 }

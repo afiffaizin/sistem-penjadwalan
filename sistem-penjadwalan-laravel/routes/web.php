@@ -45,6 +45,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/cleansing', [UploadExcelController::class, 'cleansingView'])->name('cleansing.view');
         Route::post('/cleansing/proses', [UploadExcelController::class, 'process'])->name('cleansing.process');
         Route::post('/cleansing/store', [UploadExcelController::class, 'storeDatabase'])->name('cleansing.store');
+        Route::post('/cleansing/reset', [UploadExcelController::class, 'resetData'])->name('cleansing.reset');
         
         Route::get('/jadwal/generate', [JadwalController::class, 'index'])->name('jadwal.index');
         Route::post('/jadwal/generate/process', [JadwalController::class, 'generate'])->name('jadwal.generate');
