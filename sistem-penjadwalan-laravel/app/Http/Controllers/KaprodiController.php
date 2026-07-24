@@ -95,12 +95,26 @@ class KaprodiController extends Controller
         }
 
         $prodiId = $user->prodi_id;
-        $activeTahunAjarIds = TahunAjar::where('is_active', true)->pluck('id')->toArray();
-        $kelasIds = Kelas::where('prodi_id', $prodiId)->pluck('id')->toArray();
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
+        $activeTahunAjar = TahunAjar::where('is_active', true)->first();
+        $selectedTahunAjarId = $request->input('tahun_ajar_id', $activeTahunAjar?->id);
 
-        $dosenIds = Jadwal::whereIn('tahun_ajar_id', $activeTahunAjarIds)->whereIn('kelas_id', $kelasIds)->distinct()->pluck('dosen_id');
+        $kelasQuery = Kelas::where('prodi_id', $prodiId);
+        if ($selectedTahunAjarId) {
+            $kelasQuery->where('tahun_ajar_id', $selectedTahunAjarId);
+        }
+        $kelas = $kelasQuery->orderBy('nama')->get();
+        $kelasIds = $kelas->pluck('id')->toArray();
+
+        $dosenQuery = Jadwal::whereIn('kelas_id', $kelasIds);
+        if ($selectedTahunAjarId) {
+            $dosenQuery->where('tahun_ajar_id', $selectedTahunAjarId);
+        } else {
+            $dosenQuery->whereIn('tahun_ajar_id', TahunAjar::where('is_active', true)->pluck('id')->toArray());
+        }
+        $dosenIds = $dosenQuery->distinct()->pluck('dosen_id');
+
         $dosens = Dosen::whereIn('id', $dosenIds)->orderBy('nama')->get();
-        $kelas  = Kelas::where('prodi_id', $prodiId)->orderBy('nama')->get();
         $ruangs = Ruang::orderBy('nama')->get();
 
         $hariKerja = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
@@ -154,8 +168,13 @@ class KaprodiController extends Controller
         }
 
         $query = Jadwal::with(['mata_kuliah', 'dosen', 'kelas', 'ruang'])
-            ->whereIn('tahun_ajar_id', $activeTahunAjarIds)
             ->whereIn('kelas_id', $kelasIds); 
+
+        if ($selectedTahunAjarId) {
+            $query->where('tahun_ajar_id', $selectedTahunAjarId);
+        } else {
+            $query->whereIn('tahun_ajar_id', TahunAjar::where('is_active', true)->pluck('id')->toArray());
+        }
 
         if ($request->filled('dosen_id')) $query->where('dosen_id', $request->dosen_id);
         if ($request->filled('kelas_id')) $query->where('kelas_id', $request->kelas_id);
@@ -189,7 +208,9 @@ class KaprodiController extends Controller
             'matrixJadwal',
             'matkulMandiri',
             'totalSesi',
-            'hariKerja'
+            'hariKerja',
+            'tahunAjars',
+            'selectedTahunAjarId'
         ));
     }
 
