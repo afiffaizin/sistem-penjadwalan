@@ -14,6 +14,8 @@ use App\Models\Ruang;
 use App\Models\TahunAjar;
 use App\Models\Kelas;
 use App\Models\DosenMatkul;
+use App\Models\Jadwal;
+use App\Models\DosenUnavailableDay;
 
 class UploadExcelController extends Controller
 {
@@ -25,7 +27,8 @@ class UploadExcelController extends Controller
     public function cleansingView()
     {
         $isCleansed = Storage::exists('temp_data.json');
-        return view('cleansing', compact('isCleansed'));
+        $importHistories = TahunAjar::latest('id')->get();
+        return view('cleansing', compact('isCleansed', 'importHistories'));
     }
 
     public function process(Request $request)
@@ -89,13 +92,15 @@ class UploadExcelController extends Controller
                 ['is_active' => true]
             );
 
+            $taId = $tahunAjar->id;
+
             // SIMPAN DATA RUANGAN
             foreach ($data['ruangan'] as $r) {
                 $namaProdi = trim($r['prodi']) ?: 'Umum';
                 $prodi = ProgramStudi::firstOrCreate(['nama' => $namaProdi]);
 
                 Ruang::updateOrCreate(
-                    ['nama' => $r['ruang'], 'prodi_id' => $prodi->id],
+                    ['nama' => $r['ruang'], 'prodi_id' => $prodi->id, 'tahun_ajar_id' => $taId],
                     ['kategori' => $r['kategori']]
                 );
             }
@@ -105,7 +110,7 @@ class UploadExcelController extends Controller
                 $prodi = ProgramStudi::firstOrCreate(['nama' => $mk['prodi']]);
 
                 MataKuliah::updateOrCreate(
-                    ['nama' => $mk['nama_mk'], 'prodi_id' => $prodi->id],
+                    ['nama' => $mk['nama_mk'], 'prodi_id' => $prodi->id, 'tahun_ajar_id' => $taId],
                     [
                         'sks_teori' => $mk['sks_teori'],
                         'sks_praktikum' => $mk['sks_praktikum'],
@@ -119,7 +124,7 @@ class UploadExcelController extends Controller
                 $prodi = ProgramStudi::firstOrCreate(['nama' => $p['prodi']]);
 
                 $dosen = Dosen::firstOrCreate(
-                    ['nama' => $p['nama_dosen']],
+                    ['nama' => $p['nama_dosen'], 'tahun_ajar_id' => $taId],
                     [
                         'kode_dosen' => $p['kode_dosen'],
                         'nip'       => $p['nip'] ?? null
@@ -129,7 +134,7 @@ class UploadExcelController extends Controller
                 $dosen->prodis()->syncWithoutDetaching([$prodi->id]);
 
                 $mk = MataKuliah::firstOrCreate(
-                    ['nama' => $p['nama_mk'], 'prodi_id' => $prodi->id],
+                    ['nama' => $p['nama_mk'], 'prodi_id' => $prodi->id, 'tahun_ajar_id' => $taId],
                     [
                         'sks_teori' => $p['sks_teori'],
                         'sks_praktikum' => $p['sks_praktikum'],
@@ -138,14 +143,14 @@ class UploadExcelController extends Controller
                 );
 
                 $kelas = Kelas::firstOrCreate(
-                    ['nama' => $p['kelas'], 'prodi_id' => $prodi->id, 'tahun_ajar_id' => $tahunAjar->id]
+                    ['nama' => $p['kelas'], 'prodi_id' => $prodi->id, 'tahun_ajar_id' => $taId]
                 );
 
                 DosenMatkul::firstOrCreate([
                     'dosen_id' => $dosen->id,
                     'mata_kuliah_id' => $mk->id,
                     'kelas_id' => $kelas->id,
-                    'tahun_ajar_id' => $tahunAjar->id,
+                    'tahun_ajar_id' => $taId,
                 ]);
             }
 
@@ -159,6 +164,50 @@ class UploadExcelController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal menyimpan ke Database: ' . $e->getMessage());
+        }
+    }
+
+    public function resetData(Request $request)
+    {
+        $request->validate([
+            'tahun_ajar_id' => 'required|exists:tahun_ajars,id',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $taId = $request->tahun_ajar_id;
+
+            // Delete transactional data
+            Jadwal::where('tahun_ajar_id', $taId)->delete();
+            DosenMatkul::where('tahun_ajar_id', $taId)->delete();
+            DosenUnavailableDay::where('tahun_ajar_id', $taId)->delete();
+            Kelas::where('tahun_ajar_id', $taId)->delete();
+
+            // Delete master data owned by this import
+            $dosenIds = Dosen::where('tahun_ajar_id', $taId)->pluck('id');
+            DB::table('dosen_prodi')->whereIn('dosen_id', $dosenIds)->delete();
+            Dosen::where('tahun_ajar_id', $taId)->delete();
+            MataKuliah::where('tahun_ajar_id', $taId)->delete();
+            Ruang::where('tahun_ajar_id', $taId)->delete();
+
+            // Delete tahun_ajar itself
+            TahunAjar::where('id', $taId)->delete();
+
+            // Remove temp cleansing file if exists
+            if (Storage::exists('temp_data.json')) {
+                Storage::delete('temp_data.json');
+            }
+
+            DB::commit();
+
+            session()->forget(['upload_tahun', 'upload_semester']);
+
+            return redirect()->route('cleansing.view')
+                ->with('success', 'Seluruh data hasil import berhasil direset. Silakan upload ulang file Excel.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal mereset data: ' . $e->getMessage());
         }
     }
 }

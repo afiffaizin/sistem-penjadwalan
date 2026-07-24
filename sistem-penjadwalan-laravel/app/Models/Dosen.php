@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Dosen extends Model
 {
-    protected $fillable = ['kode_dosen', 'nama', 'nidn', 'prodi_id', 'nip'];
+    protected $fillable = ['kode_dosen', 'nama', 'nidn', 'prodi_id', 'nip', 'tahun_ajar_id'];
 
     public function prodis()
     {
         return $this->belongsToMany(ProgramStudi::class, 'dosen_prodi', 'dosen_id', 'prodi_id');
+    }
+
+    public function tahunAjar(): BelongsTo
+    {
+        return $this->belongsTo(TahunAjar::class);
     }
 
     public function unavailableDays(): HasMany
