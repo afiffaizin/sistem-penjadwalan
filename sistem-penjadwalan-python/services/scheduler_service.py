@@ -1,6 +1,11 @@
 from ortools.sat.python import cp_model
 
+
 def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None):
+    """
+    Compact CP-SAT model: 3 IntVars per task (day, start_session, room_index)
+    instead of O(T×R×D×S) BoolVars.  Keeps all 8 original constraints (C1–C8).
+    """
     model = cp_model.CpModel()
     unavailable_days = unavailable_days or []
 
@@ -8,14 +13,13 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
     num_hari = len(hari_kerja)
     num_sesi = 8
 
-    # 1. Teori & Praktikum dipisah jadi tugas mandiri
+    # ── 1. Build tasks from pengampu (same logic as before) ──
     tasks = []
     for p in data_pengampu:
         p_id = p['id']
         jt = p.get('jam_teori', 0)
         jp = p.get('jam_praktikum', 0)
 
-        # Jam teori
         if jt > 0:
             tasks.append({
                 'task_id': f"{p_id}_T",
@@ -23,12 +27,10 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 'dosen_id': p['dosen_id'],
                 'mata_kuliah_id': p['mata_kuliah_id'],
                 'kelas_id': p['kelas_id'],
-                'tahun_ajar_id': p['tahun_ajar_id'], 
+                'tahun_ajar_id': p['tahun_ajar_id'],
                 'durasi': jt,
-                'jenis': 'teori'
+                'jenis': 'teori',
             })
-            
-        # Jam praktikum
         if jp > 0:
             tasks.append({
                 'task_id': f"{p_id}_P",
@@ -36,181 +38,235 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 'dosen_id': p['dosen_id'],
                 'mata_kuliah_id': p['mata_kuliah_id'],
                 'kelas_id': p['kelas_id'],
-                'tahun_ajar_id': p['tahun_ajar_id'], 
+                'tahun_ajar_id': p['tahun_ajar_id'],
                 'durasi': jp,
-                'jenis': 'praktikum'
+                'jenis': 'praktikum',
             })
 
-    # 2. PEMBUATAN VARIABEL MATRIX
-    start_vars = {}   
-    active_vars = {}  
+    if not tasks:
+        return {"status_solver": "GAGAL", "pesan": "Tidak ada task untuk dijadwalkan.", "data": []}
 
-    for t in tasks:
-        t_id = t['task_id']
-        durasi = t['durasi']
-        
-        valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
-
-        for r in valid_rooms:
-            r_id = r['id']
-            for d in range(num_hari):
-                for s in range(num_sesi):
-                    active_vars[(t_id, r_id, d, s)] = model.NewBoolVar(f"ACT_{t_id}_R{r_id}_D{d}_S{s}")
-                    
-                    if s <= num_sesi - durasi:
-                        start_vars[(t_id, r_id, d, s)] = model.NewBoolVar(f"STR_{t_id}_R{r_id}_D{d}_S{s}")
-                    else:
-                        start_vars[(t_id, r_id, d, s)] = model.NewConstant(0)
-
-    # 3. PENAMBAHAN CONSTRAINTS
-    # C1: Setiap tugas harus jalan 1 kali
-    for t in tasks:
-        valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
-        model.AddExactlyOne(
-            start_vars[(t['task_id'], r['id'], d, s)]
-            for r in valid_rooms for d in range(num_hari) for s in range(num_sesi)
-        )
-
-    # C2: SKS saling berurutan dalam 1 tugas
-    for t in tasks:
-        t_id = t['task_id']
-        durasi = t['durasi']
-        valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
-        for r in valid_rooms:
-            r_id = r['id']
-            for d in range(num_hari):
-                for s in range(num_sesi):
-                    start_window = [start_vars[(t_id, r_id, d, sp)] for sp in range(max(0, s - durasi + 1), s + 1)]
-                    model.Add(active_vars[(t_id, r_id, d, s)] == sum(start_window))
-
-    # C3: Anti Bentrok Ruangan
+    # ── Pre-index rooms by category ──
+    rooms_by_cat = {}
     for r in data_ruangan:
-        r_id = r['id']
-        r_kat = r.get('kategori', '').lower()
-        compatible_tasks = [t for t in tasks if t['jenis'] == r_kat]
-        for d in range(num_hari):
-            for s in range(num_sesi):
-                model.AddAtMostOne(active_vars[(t['task_id'], r_id, d, s)] for t in compatible_tasks)
+        cat = r.get('kategori', '').lower()
+        rooms_by_cat.setdefault(cat, []).append(r)
 
-    # C4: Anti Bentrok Dosen
-    dosen_ids = set(t['dosen_id'] for t in tasks)
-    for dosen_id in dosen_ids:
-        tasks_dosen = [t for t in tasks if t['dosen_id'] == dosen_id]
-        for d in range(num_hari):
-            for s in range(num_sesi):
-                active_for_dosen = []
-                for t in tasks_dosen:
-                    valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
-                    for r in valid_rooms:
-                        active_for_dosen.append(active_vars[(t['task_id'], r['id'], d, s)])
-                model.AddAtMostOne(active_for_dosen)
+    # Build room-index mapping per category: room_id → local index
+    room_idx_map = {}   # cat → {room_id: index}
+    room_list_map = {}  # cat → [room_id, ...]
+    for cat, rooms in rooms_by_cat.items():
+        room_list_map[cat] = [r['id'] for r in rooms]
+        room_idx_map[cat] = {r['id']: i for i, r in enumerate(rooms)}
 
-    # C5: Anti Bentrok Kelas Mahasiswa
-    kelas_ids = set(t['kelas_id'] for t in tasks)
-    for kelas_id in kelas_ids:
-        tasks_kelas = [t for t in tasks if t['kelas_id'] == kelas_id]
-        for d in range(num_hari):
-            for s in range(num_sesi):
-                active_for_kelas = []
-                for t in tasks_kelas:
-                    valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
-                    for r in valid_rooms:
-                        active_for_kelas.append(active_vars[(t['task_id'], r['id'], d, s)])
-                model.AddAtMostOne(active_for_kelas)
-
-    # C6: Wajib Istirahat Jumat Sesi 5
-    for t in tasks:
-        valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
-        for r in valid_rooms:
-            model.Add(active_vars[(t['task_id'], r['id'], 4, 4)] == 0)
-
-    # C7: Dosen tidak boleh dijadwalkan pada hari yang direquest tidak bisa mengajar
-    hari_index = {hari: idx for idx, hari in enumerate(hari_kerja)}
-    unavailable_by_dosen = {}
+    # ── Pre-index unavailable days by dosen ──
+    hari_index = {h: i for i, h in enumerate(hari_kerja)}
+    unavail_by_dosen = {}
     for item in unavailable_days:
-        dosen_id = item.get('dosen_id')
-        hari = item.get('hari')
-        if dosen_id is not None and hari in hari_index:
-            unavailable_by_dosen.setdefault(int(dosen_id), set()).add(hari_index[hari])
+        did = item.get('dosen_id')
+        h = item.get('hari')
+        if did is not None and h in hari_index:
+            unavail_by_dosen.setdefault(int(did), set()).add(hari_index[h])
 
-    for t in tasks:
-        blocked_days = unavailable_by_dosen.get(int(t['dosen_id']), set())
-        if not blocked_days:
-            continue
+    # ── 2. Create compact variables: 3 IntVars per task ──
+    # For each task i:
+    #   day[i]   ∈ [0, num_hari-1]
+    #   start[i] ∈ [0, num_sesi - durasi]   (0-indexed start session)
+    #   room[i]  ∈ [0, len(valid_rooms)-1]   (index into category room list)
+    day_vars = []
+    start_vars = []
+    room_vars = []
 
-        valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
-        for r in valid_rooms:
-            for d in blocked_days:
-                for s in range(num_sesi):
-                    model.Add(active_vars[(t['task_id'], r['id'], d, s)] == 0)
+    for i, t in enumerate(tasks):
+        cat = t['jenis']
+        num_rooms = len(rooms_by_cat.get(cat, []))
+        if num_rooms == 0:
+            return {
+                "status_solver": "GAGAL",
+                "pesan": f"Tidak ada ruangan berkategori '{cat}' untuk task {t['task_id']}.",
+                "data": [],
+            }
 
-    # C8: Teori harus dijadwalkan SEBELUM Praktikum (untuk matkul yang punya keduanya)
-    # Kelompokkan task berdasarkan pengampu_id untuk menemukan pasangan Teori + Praktikum
+        durasi = t['durasi']
+        max_start = num_sesi - durasi  # 0-indexed
+
+        day_vars.append(model.NewIntVar(0, num_hari - 1, f"day_{i}"))
+        start_vars.append(model.NewIntVar(0, max_start, f"start_{i}"))
+        room_vars.append(model.NewIntVar(0, num_rooms - 1, f"room_{i}"))
+
+    n = len(tasks)
+
+    # Helper: linearised timeslot = day * num_sesi + start_session
+    # Used for ordering and overlap detection
+    def _time_var(i):
+        """Return an IntVar = day[i] * num_sesi + start[i]."""
+        tv = model.NewIntVar(0, num_hari * num_sesi - 1, f"time_{i}")
+        model.Add(tv == day_vars[i] * num_sesi + start_vars[i])
+        return tv
+
+    # ── 3. Constraints ──
+
+    # C6: Wajib Istirahat Jumat Sesi 5  (day=4, session-index=4)
+    # A task occupies sessions [start, start+dur-1].  Block if it covers index 4 on Friday.
+    # Equivalent: if day==4 then NOT (start <= 4 AND start+dur-1 >= 4)
+    #           → if day==4 then (start > 4 OR start+dur-1 < 4)
+    #           → if day==4 then (start >= 5 OR start <= 3 - 0) → start >= 5 OR start+dur <= 4
+    for i, t in enumerate(tasks):
+        durasi = t['durasi']
+        is_friday = model.NewBoolVar(f"fri_{i}")
+        model.Add(day_vars[i] == 4).OnlyEnforceIf(is_friday)
+        model.Add(day_vars[i] != 4).OnlyEnforceIf(is_friday.Not())
+
+        # If friday: task must not cover session-index 4
+        # Task covers [start, start+dur-1].  Covers index 4 iff start <= 4 AND start+dur-1 >= 4
+        # → start <= 4 AND start >= 5-dur → start ∈ [max(0,5-dur), 4]
+        # Forbid that range on friday.
+        low = max(0, 5 - durasi)
+        high = 4
+        if low <= high:
+            # if is_friday → start < low OR start > high
+            ok_before = model.NewBoolVar(f"fri_ok_b_{i}")
+            ok_after = model.NewBoolVar(f"fri_ok_a_{i}")
+            model.Add(start_vars[i] <= low - 1).OnlyEnforceIf(ok_before)
+            model.Add(start_vars[i] >= low).OnlyEnforceIf(ok_before.Not())
+            model.Add(start_vars[i] >= high + 1).OnlyEnforceIf(ok_after)
+            model.Add(start_vars[i] <= high).OnlyEnforceIf(ok_after.Not())
+            # friday → at least one of ok_before / ok_after
+            model.AddBoolOr([ok_before, ok_after]).OnlyEnforceIf(is_friday)
+
+    # C7: Dosen unavailable days
+    for i, t in enumerate(tasks):
+        blocked = unavail_by_dosen.get(int(t['dosen_id']), set())
+        for bd in blocked:
+            model.Add(day_vars[i] != bd)
+
+    # C3: Anti Bentrok Ruangan  — no two tasks in the same physical room at overlapping times
+    # C4: Anti Bentrok Dosen    — no dosen teaches two tasks at overlapping times
+    # C5: Anti Bentrok Kelas    — no kelas has two tasks at overlapping times
+    #
+    # For every pair (i,j) sharing a resource, we need a no-overlap constraint:
+    #   They overlap iff same_day AND start[i] < start[j]+dur[j] AND start[j] < start[i]+dur[i]
+    #   → forbid that conjunction.
+    #
+    # We use reified bools + interval approach:
+    #   same_day → (end[i] <= start[j]) OR (end[j] <= start[i])
+    #   For room: also require same physical room  (room_id equality via category index)
+
+    # Group tasks by shared resources for pairwise constraints
+    # Build index structures
+    tasks_by_dosen = {}
+    tasks_by_kelas = {}
+    tasks_by_cat = {}
+    for i, t in enumerate(tasks):
+        tasks_by_dosen.setdefault(t['dosen_id'], []).append(i)
+        tasks_by_kelas.setdefault(t['kelas_id'], []).append(i)
+        tasks_by_cat.setdefault(t['jenis'], []).append(i)
+
+    def add_no_overlap_pair(i, j):
+        """If same day → one must finish before other starts."""
+        same_day = model.NewBoolVar(f"sd_{i}_{j}")
+        model.Add(day_vars[i] == day_vars[j]).OnlyEnforceIf(same_day)
+        model.Add(day_vars[i] != day_vars[j]).OnlyEnforceIf(same_day.Not())
+
+        # i before j OR j before i  (when same day)
+        i_before_j = model.NewBoolVar(f"ib_{i}_{j}")
+        model.Add(start_vars[i] + tasks[i]['durasi'] <= start_vars[j]).OnlyEnforceIf(i_before_j)
+        model.Add(start_vars[i] + tasks[i]['durasi'] > start_vars[j]).OnlyEnforceIf(i_before_j.Not())
+
+        j_before_i = model.NewBoolVar(f"jb_{i}_{j}")
+        model.Add(start_vars[j] + tasks[j]['durasi'] <= start_vars[i]).OnlyEnforceIf(j_before_i)
+        model.Add(start_vars[j] + tasks[j]['durasi'] > start_vars[i]).OnlyEnforceIf(j_before_i.Not())
+
+        model.AddBoolOr([same_day.Not(), i_before_j, j_before_i])
+
+    # C4: Dosen — pairwise no-overlap among tasks of same dosen
+    for dosen_id, idxs in tasks_by_dosen.items():
+        for a in range(len(idxs)):
+            for b in range(a + 1, len(idxs)):
+                add_no_overlap_pair(idxs[a], idxs[b])
+
+    # C5: Kelas — pairwise no-overlap among tasks of same kelas
+    for kelas_id, idxs in tasks_by_kelas.items():
+        for a in range(len(idxs)):
+            for b in range(a + 1, len(idxs)):
+                add_no_overlap_pair(idxs[a], idxs[b])
+
+    # C3: Ruangan — pairwise no-overlap among tasks that *could* share a room
+    # Two tasks share a room iff same category AND same room index → same physical room
+    for cat, idxs in tasks_by_cat.items():
+        for a in range(len(idxs)):
+            for b in range(a + 1, len(idxs)):
+                i, j = idxs[a], idxs[b]
+                # same room?
+                same_room = model.NewBoolVar(f"sr_{i}_{j}")
+                model.Add(room_vars[i] == room_vars[j]).OnlyEnforceIf(same_room)
+                model.Add(room_vars[i] != room_vars[j]).OnlyEnforceIf(same_room.Not())
+
+                same_day = model.NewBoolVar(f"sdr_{i}_{j}")
+                model.Add(day_vars[i] == day_vars[j]).OnlyEnforceIf(same_day)
+                model.Add(day_vars[i] != day_vars[j]).OnlyEnforceIf(same_day.Not())
+
+                i_before_j = model.NewBoolVar(f"ibr_{i}_{j}")
+                model.Add(start_vars[i] + tasks[i]['durasi'] <= start_vars[j]).OnlyEnforceIf(i_before_j)
+                model.Add(start_vars[i] + tasks[i]['durasi'] > start_vars[j]).OnlyEnforceIf(i_before_j.Not())
+
+                j_before_i = model.NewBoolVar(f"jbr_{i}_{j}")
+                model.Add(start_vars[j] + tasks[j]['durasi'] <= start_vars[i]).OnlyEnforceIf(j_before_i)
+                model.Add(start_vars[j] + tasks[j]['durasi'] > start_vars[i]).OnlyEnforceIf(j_before_i.Not())
+
+                # same_room AND same_day → one before other
+                model.AddBoolOr([same_room.Not(), same_day.Not(), i_before_j, j_before_i])
+
+    # C8: Teori before Praktikum (for pengampu that have both)
     tasks_by_pengampu = {}
-    for t in tasks:
-        tasks_by_pengampu.setdefault(t['pengampu_id'], []).append(t)
+    for i, t in enumerate(tasks):
+        tasks_by_pengampu.setdefault(t['pengampu_id'], []).append(i)
 
-    for pengampu_id, group in tasks_by_pengampu.items():
-        teori_task = next((t for t in group if t['jenis'] == 'teori'), None)
-        praktikum_task = next((t for t in group if t['jenis'] == 'praktikum'), None)
-
-        # Hanya berlaku jika matkul tersebut memiliki KEDUA komponen
-        if teori_task is None or praktikum_task is None:
+    time_vars_cache = {}
+    for pengampu_id, idxs in tasks_by_pengampu.items():
+        teori_idx = next((i for i in idxs if tasks[i]['jenis'] == 'teori'), None)
+        prak_idx = next((i for i in idxs if tasks[i]['jenis'] == 'praktikum'), None)
+        if teori_idx is None or prak_idx is None:
             continue
 
-        # Buat variabel waktu linear untuk setiap task: waktu = hari * num_sesi + sesi_mulai
-        # Variabel waktu teori
-        teori_time = model.NewIntVar(0, num_hari * num_sesi - 1, f"time_{teori_task['task_id']}")
-        valid_rooms_teori = [r for r in data_ruangan if r.get('kategori', '').lower() == 'teori']
-        teori_contributions = []
-        for r in valid_rooms_teori:
-            for d in range(num_hari):
-                for s in range(num_sesi):
-                    if (teori_task['task_id'], r['id'], d, s) in start_vars:
-                        time_val = d * num_sesi + s
-                        teori_contributions.append(start_vars[(teori_task['task_id'], r['id'], d, s)] * time_val)
-        model.Add(teori_time == sum(teori_contributions))
+        if teori_idx not in time_vars_cache:
+            time_vars_cache[teori_idx] = _time_var(teori_idx)
+        if prak_idx not in time_vars_cache:
+            time_vars_cache[prak_idx] = _time_var(prak_idx)
 
-        # Variabel waktu praktikum
-        praktikum_time = model.NewIntVar(0, num_hari * num_sesi - 1, f"time_{praktikum_task['task_id']}")
-        valid_rooms_praktikum = [r for r in data_ruangan if r.get('kategori', '').lower() == 'praktikum']
-        praktikum_contributions = []
-        for r in valid_rooms_praktikum:
-            for d in range(num_hari):
-                for s in range(num_sesi):
-                    if (praktikum_task['task_id'], r['id'], d, s) in start_vars:
-                        time_val = d * num_sesi + s
-                        praktikum_contributions.append(start_vars[(praktikum_task['task_id'], r['id'], d, s)] * time_val)
-        model.Add(praktikum_time == sum(praktikum_contributions))
+        model.Add(time_vars_cache[teori_idx] < time_vars_cache[prak_idx])
 
-        # Constraint: waktu teori harus LEBIH AWAL dari waktu praktikum
-        model.Add(teori_time < praktikum_time)
-
-    # 4. SOLVER
+    # ── 4. Solve ──
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 240.0 
-    status = solver.Solve(model)
+    solver.parameters.max_time_in_seconds = 300.0
+    solver.parameters.max_memory_in_mb = 2048
+    solver.parameters.num_workers = 4
 
-    # 5. KEMBALIKAN DATA LENGKAP KE LARAVEL
-    hasil_jadwal = []
-    if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
-        for t in tasks:
-            valid_rooms = [r for r in data_ruangan if r.get('kategori', '').lower() == t['jenis']]
-            for r in valid_rooms:
-                for d in range(num_hari):
-                    for s in range(num_sesi):
-                        if solver.Value(start_vars[(t['task_id'], r['id'], d, s)]) == 1:
-                            hasil_jadwal.append({
-                                "pengampu_id": t['pengampu_id'],
-                                "dosen_id": t['dosen_id'],
-                                "mata_kuliah_id": t['mata_kuliah_id'],
-                                "kelas_id": t['kelas_id'],
-                                "tahun_ajar_id": t['tahun_ajar_id'],
-                                "ruang_id": r['id'],
-                                "hari": hari_kerja[d],
-                                "sesi_mulai": s + 1,
-                                "sesi_selesai": s + t['durasi']
-                            })
-        return {"status_solver": "SUKSES", "pesan": "Berhasil", "data": hasil_jadwal}
+    print(f"   Model: {n} tasks, {model.Proto().variables.__len__()} vars")
+    status = solver.Solve(model)
+    print(f"   Solver status: {solver.StatusName(status)}, time: {solver.WallTime():.1f}s")
+
+    # ── 5. Extract results ──
+    if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        hasil = []
+        for i, t in enumerate(tasks):
+            cat = t['jenis']
+            d = solver.Value(day_vars[i])
+            s = solver.Value(start_vars[i])
+            ri = solver.Value(room_vars[i])
+            room_id = room_list_map[cat][ri]
+
+            hasil.append({
+                "pengampu_id": t['pengampu_id'],
+                "dosen_id": t['dosen_id'],
+                "mata_kuliah_id": t['mata_kuliah_id'],
+                "kelas_id": t['kelas_id'],
+                "tahun_ajar_id": t['tahun_ajar_id'],
+                "ruang_id": room_id,
+                "hari": hari_kerja[d],
+                "sesi_mulai": s + 1,           # 1-indexed for Laravel
+                "sesi_selesai": s + t['durasi'],  # inclusive
+            })
+        return {"status_solver": "SUKSES", "pesan": "Berhasil", "data": hasil}
     else:
-        return {"status_solver": "GAGAL", "pesan": "Gagal.", "data": []}
+        return {"status_solver": "GAGAL", "pesan": "Solver tidak menemukan solusi yang layak.", "data": []}
