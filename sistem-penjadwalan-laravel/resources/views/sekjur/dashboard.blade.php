@@ -3,9 +3,22 @@
 @section('content')
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div class="mb-8 mt-2">
-            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
-            <p class="text-blue-600 font-medium mt-1 text-sm">Statistik Sistem Penjadwalan Aktif</p>
+        <div class="mb-8 mt-2 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Dashboard</h1>
+                <p class="text-blue-600 font-medium mt-1 text-sm">Statistik Sistem Penjadwalan Aktif</p>
+            </div>
+            
+            <form action="{{ route('sekjur.dashboard') }}" method="GET" class="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
+                <label for="tahun_ajar_id" class="text-sm font-bold text-gray-600">Tahun Ajaran:</label>
+                <select name="tahun_ajar_id" id="tahun_ajar_id" onchange="this.form.submit()" class="border-none bg-transparent text-sm font-bold text-gray-900 focus:ring-0 cursor-pointer">
+                    @foreach($tahunAjars as $ta)
+                        <option value="{{ $ta->id }}" {{ $selectedTahunAjarId == $ta->id ? 'selected' : '' }}>
+                            {{ $ta->tahun }} - {{ $ta->semester }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

@@ -4,13 +4,25 @@
     <div class="container mx-auto max-w-7xl">
 
         <div
-            class="bg-gradient-to-r from-amber-700 to-amber-900 text-white p-8 rounded-2xl shadow-md mb-8 relative overflow-hidden">
+            class="bg-gradient-to-r from-amber-700 to-amber-900 text-white p-8 rounded-2xl shadow-md mb-8 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
             </div>
             <div class="relative z-10">
                 <h1 class="text-3xl font-black mb-1">Selamat Datang, Kepala Jurusan</h1>
                 <p class="text-amber-200 text-sm font-medium">Panel Khusus Pemantauan dan Rekapitulasi Jadwal Kuliah Tingkat
                     Jurusan.</p>
+            </div>
+            <div class="relative z-10">
+                <form action="{{ route('kajur.dashboard') }}" method="GET" class="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/30">
+                    <label for="tahun_ajar_id" class="text-sm font-bold text-amber-50">Tahun Ajaran:</label>
+                    <select name="tahun_ajar_id" id="tahun_ajar_id" onchange="this.form.submit()" class="bg-transparent text-sm font-bold text-white border-none focus:ring-0 cursor-pointer [&>option]:text-gray-900">
+                        @foreach($tahunAjars as $ta)
+                            <option value="{{ $ta->id }}" {{ $selectedTahunAjarId == $ta->id ? 'selected' : '' }}>
+                                {{ $ta->tahun }} - {{ $ta->semester }}
+                            </option>
+                        @endforeach
+                    </select>
+                </form>
             </div>
         </div>
 
