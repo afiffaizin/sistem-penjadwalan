@@ -128,7 +128,17 @@ class JadwalController extends Controller
             $hasil = $response->json();
 
             if (isset($hasil['status_solver']) && $hasil['status_solver'] === 'GAGAL') {
-                return back()->with('error', 'Sistem Gagal menemukan jadwal: ' . $hasil['pesan']);
+                $pesanError = 'Sistem Gagal menemukan jadwal: ' . $hasil['pesan'];
+
+                // Append detailed violations if available
+                if (!empty($hasil['violations'])) {
+                    $pesanError .= "\n\nDetail masalah:";
+                    foreach ($hasil['violations'] as $i => $v) {
+                        $pesanError .= "\n" . ($i + 1) . ". " . $v;
+                    }
+                }
+
+                return back()->with('error', $pesanError);
             }
 
             // 5. Simpan ke Database

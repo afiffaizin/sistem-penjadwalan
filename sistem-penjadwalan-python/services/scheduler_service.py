@@ -1,4 +1,85 @@
 from ortools.sat.python import cp_model
+import math
+from collections import defaultdict
+
+
+def _precheck_feasibility(tasks, rooms_by_cat, unavail_by_dosen, num_hari, num_sesi):
+    """
+    Run quick capacity checks BEFORE building the CP model.
+    Returns a list of human-readable violation strings (empty = OK).
+    """
+    violations = []
+
+    # ── Check 1: task duration fits in a single day ──
+    for t in tasks:
+        if t['durasi'] > num_sesi:
+            violations.append(
+                f"Task '{t['task_id']}' (dosen_id={t['dosen_id']}, kelas_id={t['kelas_id']}) "
+                f"berdurasi {t['durasi']} jam, melebihi kapasitas sesi per hari ({num_sesi})."
+            )
+
+    # ── Check 2: missing room category ──
+    needed_cats = {t['jenis'] for t in tasks}
+    for cat in needed_cats:
+        if cat not in rooms_by_cat or len(rooms_by_cat[cat]) == 0:
+            violations.append(
+                f"Tidak ada ruangan berkategori '{cat}' tetapi ada {sum(1 for t in tasks if t['jenis'] == cat)} task yang membutuhkannya."
+            )
+
+    # ── Check 3: dosen overload ──
+    # Friday (day index 4) loses 1 usable slot due to break at session 5 (C6).
+    # Effective capacity per day = num_sesi, except Friday = num_sesi - 1.
+    friday_idx = 4
+    dosen_tasks = defaultdict(list)
+    for t in tasks:
+        dosen_tasks[t['dosen_id']].append(t)
+
+    for dosen_id, dtasks in dosen_tasks.items():
+        blocked_days = unavail_by_dosen.get(int(dosen_id), set())
+        avail_days = [d for d in range(num_hari) if d not in blocked_days]
+        # capacity = sum of usable slots across available days
+        capacity = sum(num_sesi if d != friday_idx else (num_sesi - 1) for d in avail_days)
+        total_hours = sum(t['durasi'] for t in dtasks)
+        if total_hours > capacity:
+            violations.append(
+                f"Dosen (id={dosen_id}) memiliki total {total_hours} jam mengajar, "
+                f"tetapi hanya tersedia {capacity} slot "
+                f"({len(avail_days)} hari tersedia, {len(blocked_days)} hari diblokir). "
+                f"Kelebihan {total_hours - capacity} jam. "
+                f"Mata kuliah: {', '.join(t['task_id'] for t in dtasks)}."
+            )
+
+    # ── Check 4: kelas overload ──
+    kelas_tasks = defaultdict(list)
+    for t in tasks:
+        kelas_tasks[t['kelas_id']].append(t)
+
+    # kelas has no unavailable days, so full capacity minus friday break
+    kelas_capacity = (num_hari - 1) * num_sesi + (num_sesi - 1)  # 4*8 + 7 = 39
+    for kelas_id, ktasks in kelas_tasks.items():
+        total_hours = sum(t['durasi'] for t in ktasks)
+        if total_hours > kelas_capacity:
+            violations.append(
+                f"Kelas (id={kelas_id}) memiliki total {total_hours} jam perkuliahan, "
+                f"tetapi kapasitas maksimum adalah {kelas_capacity} slot per minggu. "
+                f"Kelebihan {total_hours - kelas_capacity} jam."
+            )
+
+    # ── Check 5: room category capacity ──
+    for cat in needed_cats:
+        if cat not in rooms_by_cat:
+            continue
+        num_rooms = len(rooms_by_cat[cat])
+        cat_capacity = num_rooms * ((num_hari - 1) * num_sesi + (num_sesi - 1))
+        cat_hours = sum(t['durasi'] for t in tasks if t['jenis'] == cat)
+        if cat_hours > cat_capacity:
+            violations.append(
+                f"Total jam untuk kategori '{cat}' adalah {cat_hours}, "
+                f"tetapi hanya ada {num_rooms} ruangan dengan kapasitas total {cat_capacity} slot. "
+                f"Kelebihan {cat_hours - cat_capacity} jam."
+            )
+
+    return violations
 
 
 def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None):
@@ -67,6 +148,17 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
         h = item.get('hari')
         if did is not None and h in hari_index:
             unavail_by_dosen.setdefault(int(did), set()).add(hari_index[h])
+
+    # ── Pre-solve feasibility checks ──
+    violations = _precheck_feasibility(tasks, rooms_by_cat, unavail_by_dosen, num_hari, num_sesi)
+    if violations:
+        detail = " | ".join(violations)
+        return {
+            "status_solver": "GAGAL",
+            "pesan": f"Data tidak layak dijadwalkan ({len(violations)} masalah): {detail}",
+            "data": [],
+            "violations": violations,
+        }
 
     # ── 2. Create compact variables: 3 IntVars per task ──
     # For each task i:
@@ -269,4 +361,22 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             })
         return {"status_solver": "SUKSES", "pesan": "Berhasil", "data": hasil}
     else:
-        return {"status_solver": "GAGAL", "pesan": "Solver tidak menemukan solusi yang layak.", "data": []}
+        status_name = solver.StatusName(status)
+        if status == cp_model.INFEASIBLE:
+            pesan = (
+                f"Solver membuktikan bahwa jadwal TIDAK MUNGKIN dibuat (status: {status_name}). "
+                "Kemungkinan penyebab: kombinasi constraint dosen, kelas, ruangan, "
+                "dan istirahat Jumat sesi 5 membuat tidak ada solusi yang valid. "
+                "Periksa apakah ada dosen dengan beban mengajar terlalu tinggi "
+                "atau kelas dengan terlalu banyak mata kuliah."
+            )
+        elif status == cp_model.UNKNOWN:
+            pesan = (
+                f"Solver kehabisan waktu sebelum menemukan solusi (status: {status_name}, "
+                f"waktu: {solver.WallTime():.1f}s). Coba kurangi jumlah task atau tambah waktu solver."
+            )
+        elif status == cp_model.MODEL_INVALID:
+            pesan = f"Model tidak valid (status: {status_name}). Ini adalah bug internal."
+        else:
+            pesan = f"Solver gagal dengan status tidak terduga: {status_name}."
+        return {"status_solver": "GAGAL", "pesan": pesan, "data": []}
