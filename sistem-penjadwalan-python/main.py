@@ -69,7 +69,15 @@ async def api_generate_jadwal(request: Request):
         traceback.print_exc()
         return JSONResponse(
             status_code=500, 
-            content={"status": "error", "message": f"Gagal generate jadwal: {str(e)}"}
+            content={
+                "status": "error",
+                "status_solver": "GAGAL",
+                "pesan": "Terjadi kesalahan server yang tidak terduga.",
+                "violations": [
+                    "Kesalahan internal server mencegah proses penjadwalan selesai."
+                ],
+                "recommendation": "Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.",
+            }
         )
 
 if __name__ == "__main__":

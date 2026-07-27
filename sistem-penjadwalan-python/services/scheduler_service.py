@@ -6,29 +6,64 @@ from collections import defaultdict
 def _precheck_feasibility(tasks, rooms_by_cat, unavail_by_dosen, num_hari, num_sesi):
     """
     Run quick capacity checks BEFORE building the CP model.
-    Returns a list of human-readable violation strings (empty = OK).
+
+    Returns (primary_cause, reasons_list, recommendation) or (None, [], None) if OK.
+    Priority of checks: Missing Rooms > Room Capacity > Lecturer Overload > Class Overload > Task Duration.
     """
-    violations = []
-
-    # ── Check 1: task duration fits in a single day ──
+    # Build name lookup maps from task data
+    dosen_names = {}
+    kelas_names = {}
     for t in tasks:
-        if t['durasi'] > num_sesi:
-            violations.append(
-                f"Task '{t['task_id']}' (dosen_id={t['dosen_id']}, kelas_id={t['kelas_id']}) "
-                f"berdurasi {t['durasi']} jam, melebihi kapasitas sesi per hari ({num_sesi})."
-            )
+        if t.get('dosen_nama'):
+            dosen_names[t['dosen_id']] = t['dosen_nama']
+        if t.get('kelas_nama'):
+            kelas_names[t['kelas_id']] = t['kelas_nama']
 
-    # ── Check 2: missing room category ──
+    def _dosen_label(did):
+        return dosen_names.get(did, f"Lecturer ID {did}")
+
+    def _kelas_label(kid):
+        return kelas_names.get(kid, f"Class ID {kid}")
+
     needed_cats = {t['jenis'] for t in tasks}
+    cat_labels = {'teori': 'Teori', 'praktikum': 'Praktikum'}
+
+    # 1. Missing Room Category
+    missing_cats = []
     for cat in needed_cats:
         if cat not in rooms_by_cat or len(rooms_by_cat[cat]) == 0:
-            violations.append(
-                f"Tidak ada ruangan berkategori '{cat}' tetapi ada {sum(1 for t in tasks if t['jenis'] == cat)} task yang membutuhkannya."
+            missing_cats.append(cat)
+            
+    if missing_cats:
+        reasons = []
+        for cat in missing_cats:
+            count = sum(1 for t in tasks if t['jenis'] == cat)
+            label = cat_labels.get(cat, cat.title())
+            reasons.append(f"**{count} matkul** membutuhkan ruangan **{label}**, namun ruangan tersebut tidak tersedia.")
+        return (
+            "Kategori ruangan tidak ditemukan.",
+            reasons,
+            "Silakan tambahkan jenis ruangan yang dibutuhkan pada menu Master Data sebelum melakukan generate jadwal."
+        )
+
+    # 2. Room Category Capacity Overload
+    for cat in needed_cats:
+        num_rooms = len(rooms_by_cat[cat])
+        cat_capacity = num_rooms * ((num_hari - 1) * num_sesi + (num_sesi - 1))
+        cat_hours = sum(t['durasi'] for t in tasks if t['jenis'] == cat)
+        if cat_hours > cat_capacity:
+            label = cat_labels.get(cat, cat.title())
+            return (
+                "Kapasitas ruangan tidak mencukupi.",
+                [
+                    f"Total kebutuhan ruangan **{label}** adalah **{cat_hours} sesi**.",
+                    f"Hanya tersedia **{num_rooms} ruangan** dengan total kapasitas **{cat_capacity} sesi**.",
+                    f"Kelebihan beban: **{cat_hours - cat_capacity} sesi**."
+                ],
+                f"Silakan tambahkan ruangan {label} baru atau kurangi jumlah matkul yang dijadwalkan."
             )
 
-    # ── Check 3: dosen overload ──
-    # Friday (day index 4) loses 1 usable slot due to break at session 5 (C6).
-    # Effective capacity per day = num_sesi, except Friday = num_sesi - 1.
+    # 3. Lecturer Overload
     friday_idx = 4
     dosen_tasks = defaultdict(list)
     for t in tasks:
@@ -37,49 +72,57 @@ def _precheck_feasibility(tasks, rooms_by_cat, unavail_by_dosen, num_hari, num_s
     for dosen_id, dtasks in dosen_tasks.items():
         blocked_days = unavail_by_dosen.get(int(dosen_id), set())
         avail_days = [d for d in range(num_hari) if d not in blocked_days]
-        # capacity = sum of usable slots across available days
         capacity = sum(num_sesi if d != friday_idx else (num_sesi - 1) for d in avail_days)
         total_hours = sum(t['durasi'] for t in dtasks)
         if total_hours > capacity:
-            violations.append(
-                f"Dosen (id={dosen_id}) memiliki total {total_hours} jam mengajar, "
-                f"tetapi hanya tersedia {capacity} slot "
-                f"({len(avail_days)} hari tersedia, {len(blocked_days)} hari diblokir). "
-                f"Kelebihan {total_hours - capacity} jam. "
-                f"Mata kuliah: {', '.join(t['task_id'] for t in dtasks)}."
+            name = _dosen_label(dosen_id)
+            return (
+                "Beban mengajar dosen melebihi batas maksimal.",
+                [
+                    f"Dosen: **{name}**.",
+                    f"Total beban mengajar: **{total_hours} sesi**.",
+                    f"Kapasitas maksimal yang tersedia: **{capacity} sesi** ({len(avail_days)} hari tersedia, {len(blocked_days)} hari diblokir).",
+                    f"Kelebihan beban: **{total_hours - capacity} sesi**."
+                ],
+                "Silakan kurangi beban mengajar dosen ini, buka jadwal hari yang diblokir, atau pindahkan sebagian matkul ke dosen lain."
             )
 
-    # ── Check 4: kelas overload ──
+    # 4. Class Overload
     kelas_tasks = defaultdict(list)
     for t in tasks:
         kelas_tasks[t['kelas_id']].append(t)
 
-    # kelas has no unavailable days, so full capacity minus friday break
-    kelas_capacity = (num_hari - 1) * num_sesi + (num_sesi - 1)  # 4*8 + 7 = 39
+    kelas_capacity = (num_hari - 1) * num_sesi + (num_sesi - 1)
     for kelas_id, ktasks in kelas_tasks.items():
         total_hours = sum(t['durasi'] for t in ktasks)
         if total_hours > kelas_capacity:
-            violations.append(
-                f"Kelas (id={kelas_id}) memiliki total {total_hours} jam perkuliahan, "
-                f"tetapi kapasitas maksimum adalah {kelas_capacity} slot per minggu. "
-                f"Kelebihan {total_hours - kelas_capacity} jam."
+            name = _kelas_label(kelas_id)
+            return (
+                "Total sesi perkuliahan kelas melebihi batas maksimal per minggu.",
+                [
+                    f"Kelas: **{name}**.",
+                    f"Total sesi ditugaskan: **{total_hours} sesi**.",
+                    f"Kapasitas maksimal mingguan: **{kelas_capacity} sesi**.",
+                    f"Kelebihan beban: **{total_hours - kelas_capacity} sesi**."
+                ],
+                "Silakan pindahkan sebagian mata kuliah ke kelas lain."
             )
 
-    # ── Check 5: room category capacity ──
-    for cat in needed_cats:
-        if cat not in rooms_by_cat:
-            continue
-        num_rooms = len(rooms_by_cat[cat])
-        cat_capacity = num_rooms * ((num_hari - 1) * num_sesi + (num_sesi - 1))
-        cat_hours = sum(t['durasi'] for t in tasks if t['jenis'] == cat)
-        if cat_hours > cat_capacity:
-            violations.append(
-                f"Total jam untuk kategori '{cat}' adalah {cat_hours}, "
-                f"tetapi hanya ada {num_rooms} ruangan dengan kapasitas total {cat_capacity} slot. "
-                f"Kelebihan {cat_hours - cat_capacity} jam."
+    # 5. Task Duration Exceeds Daily Limit
+    for t in tasks:
+        if t['durasi'] > num_sesi:
+            mk_name = t.get('mata_kuliah_nama', t['task_id'])
+            return (
+                "Durasi mata kuliah melebihi batas sesi harian.",
+                [
+                    f"Mata Kuliah: **{mk_name}**.",
+                    f"Membutuhkan sesi berturut-turut sebanyak: **{t['durasi']} sesi**.",
+                    f"Batas maksimal sesi per hari: **{num_sesi} sesi**."
+                ],
+                "Silakan kurangi durasi blok SKS pada mata kuliah ini."
             )
 
-    return violations
+    return None, [], None
 
 
 def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None):
@@ -106,8 +149,11 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 'task_id': f"{p_id}_T",
                 'pengampu_id': p_id,
                 'dosen_id': p['dosen_id'],
+                'dosen_nama': p.get('dosen_nama', ''),
                 'mata_kuliah_id': p['mata_kuliah_id'],
+                'mata_kuliah_nama': p.get('mata_kuliah_nama', ''),
                 'kelas_id': p['kelas_id'],
+                'kelas_nama': p.get('kelas_nama', ''),
                 'tahun_ajar_id': p['tahun_ajar_id'],
                 'durasi': jt,
                 'jenis': 'teori',
@@ -117,15 +163,26 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 'task_id': f"{p_id}_P",
                 'pengampu_id': p_id,
                 'dosen_id': p['dosen_id'],
+                'dosen_nama': p.get('dosen_nama', ''),
                 'mata_kuliah_id': p['mata_kuliah_id'],
+                'mata_kuliah_nama': p.get('mata_kuliah_nama', ''),
                 'kelas_id': p['kelas_id'],
+                'kelas_nama': p.get('kelas_nama', ''),
                 'tahun_ajar_id': p['tahun_ajar_id'],
                 'durasi': jp,
                 'jenis': 'praktikum',
             })
 
     if not tasks:
-        return {"status_solver": "GAGAL", "pesan": "Tidak ada task untuk dijadwalkan.", "data": []}
+        return {
+            "status_solver": "GAGAL",
+            "pesan": "Tidak ada data beban mengajar untuk dijadwalkan.",
+            "data": [],
+            "violations": [
+                "Belum ada ploting dosen pengampu mata kuliah pada semester ini."
+            ],
+            "recommendation": "Silakan atur ploting dosen pengampu mata kuliah untuk semester yang dipilih terlebih dahulu."
+        }
 
     # ── Pre-index rooms by category ──
     rooms_by_cat = {}
@@ -150,14 +207,14 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             unavail_by_dosen.setdefault(int(did), set()).add(hari_index[h])
 
     # ── Pre-solve feasibility checks ──
-    violations = _precheck_feasibility(tasks, rooms_by_cat, unavail_by_dosen, num_hari, num_sesi)
-    if violations:
-        detail = " | ".join(violations)
+    primary_cause, reasons, recommendation = _precheck_feasibility(tasks, rooms_by_cat, unavail_by_dosen, num_hari, num_sesi)
+    if primary_cause:
         return {
             "status_solver": "GAGAL",
-            "pesan": f"Data tidak layak dijadwalkan ({len(violations)} masalah): {detail}",
+            "pesan": primary_cause,
             "data": [],
-            "violations": violations,
+            "violations": reasons,
+            "recommendation": recommendation,
         }
 
     # ── 2. Create compact variables: 3 IntVars per task ──
@@ -173,10 +230,17 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
         cat = t['jenis']
         num_rooms = len(rooms_by_cat.get(cat, []))
         if num_rooms == 0:
+            cat_labels = {'teori': 'Teori', 'praktikum': 'Praktikum'}
+            label = cat_labels.get(cat, cat.title())
+            mk_name = t.get('mata_kuliah_nama', t['task_id'])
             return {
                 "status_solver": "GAGAL",
-                "pesan": f"Tidak ada ruangan berkategori '{cat}' untuk task {t['task_id']}.",
+                "pesan": "Kategori ruangan tidak ditemukan.",
                 "data": [],
+                "violations": [
+                    f"Mata Kuliah: **{mk_name}** membutuhkan ruangan **{label}**, namun ruangan tersebut tidak tersedia."
+                ],
+                "recommendation": f"Silakan tambahkan minimal satu ruangan {label} pada master data, lalu coba generate jadwal kembali.",
             }
 
         durasi = t['durasi']
@@ -363,20 +427,36 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
     else:
         status_name = solver.StatusName(status)
         if status == cp_model.INFEASIBLE:
-            pesan = (
-                f"Solver membuktikan bahwa jadwal TIDAK MUNGKIN dibuat (status: {status_name}). "
-                "Kemungkinan penyebab: kombinasi constraint dosen, kelas, ruangan, "
-                "dan istirahat Jumat sesi 5 membuat tidak ada solusi yang valid. "
-                "Periksa apakah ada dosen dengan beban mengajar terlalu tinggi "
-                "atau kelas dengan terlalu banyak mata kuliah."
-            )
+            pesan = "Terjadi bentrok pada batasan penjadwalan."
+            violations = [
+                "Sistem tidak dapat menemukan kombinasi jadwal yang valid tanpa bentrok untuk dosen, kelas, dan ruangan yang ada.",
+                "Hal ini biasanya terjadi karena keterbatasan waktu (contoh: dosen mengajar terlalu banyak kelas atau terlalu banyak hari yang diblokir)."
+            ]
+            recommendation = "Silakan tinjau kembali beban mengajar dosen, kurangi hari tidak mengajar yang diblokir, atau sesuaikan jumlah mata kuliah."
         elif status == cp_model.UNKNOWN:
-            pesan = (
-                f"Solver kehabisan waktu sebelum menemukan solusi (status: {status_name}, "
-                f"waktu: {solver.WallTime():.1f}s). Coba kurangi jumlah task atau tambah waktu solver."
-            )
+            pesan = "Sistem kehabisan waktu saat mencoba menyusun jadwal."
+            violations = [
+                f"Sistem mencapai batas waktu {solver.WallTime():.0f} detik sebelum berhasil menemukan solusi jadwal.",
+                "Masalah penjadwalan saat ini terlalu kompleks untuk diselesaikan dalam batas waktu tersebut."
+            ]
+            recommendation = "Cobalah untuk mengurangi beban SKS atau hubungi administrator sistem untuk menambah batas waktu pencarian jadwal."
         elif status == cp_model.MODEL_INVALID:
-            pesan = f"Model tidak valid (status: {status_name}). Ini adalah bug internal."
+            pesan = "Terjadi kesalahan sistem internal."
+            violations = [
+                "Model matematis untuk proses penjadwalan tidak valid."
+            ]
+            recommendation = "Silakan hubungi administrator sistem."
         else:
-            pesan = f"Solver gagal dengan status tidak terduga: {status_name}."
-        return {"status_solver": "GAGAL", "pesan": pesan, "data": []}
+            pesan = "Terjadi kesalahan yang tidak terduga."
+            violations = [
+                f"Proses penjadwalan gagal dengan status: {status_name}."
+            ]
+            recommendation = "Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem."
+
+        return {
+            "status_solver": "GAGAL",
+            "pesan": pesan,
+            "data": [],
+            "violations": violations,
+            "recommendation": recommendation,
+        }

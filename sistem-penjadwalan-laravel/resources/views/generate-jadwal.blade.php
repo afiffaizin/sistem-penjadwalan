@@ -66,11 +66,9 @@
         @endif
 
         @if(session('error'))
-            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center mb-6 shadow-sm">
-                <i class="fa-solid fa-circle-exclamation mr-3 text-red-500 text-xl"></i>
-                <div>
-                    <strong class="font-bold">Error!</strong> <span class="block sm:inline">{{ session('error') }}</span>
-                </div>
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start mb-6 shadow-sm">
+                <i class="fa-solid fa-circle-exclamation mr-3 text-red-500 text-xl mt-0.5"></i>
+                <div>{!! session('error') !!}</div>
             </div>
         @endif
 
