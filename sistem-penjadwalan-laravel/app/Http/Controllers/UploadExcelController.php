@@ -41,6 +41,18 @@ class UploadExcelController extends Controller
             'file_ruang'  => 'required|mimes:xlsx,xls,csv',
         ]);
 
+        $exists = TahunAjar::where('tahun', $request->tahun_ajar)
+            ->where('semester', $request->semester)
+            ->exists();
+
+        if ($exists) {
+            return back()->with('error', 
+                "<strong>❌ Upload dataset gagal.</strong><br><br>" .
+                "Dataset untuk Tahun Ajaran {$request->tahun_ajar} Semester {$request->semester} sudah tersedia.<br>" .
+                "Silakan gunakan data yang ada atau hapus data lama sebelum mengunggah yang baru."
+            );
+        }
+
         session([
             'upload_tahun' => $request->tahun_ajar,
             'upload_semester' => $request->semester
