@@ -1,8 +1,13 @@
-<aside class="w-64 bg-white border-r border-gray-200 flex flex-col h-screen flex-shrink-0 hidden md:flex z-20 shadow-sm">
+<aside id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col h-screen flex-shrink-0 fixed inset-y-0 left-0 z-40 transform -translate-x-full transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:flex shadow-sm">
     
-    <div class="h-20 flex items-center px-6 pt-2">
-        <img src="{{ asset('images/jkblogo1.png') }}" alt="Logo" class="h-8 w-8 mr-3">
-        <span class="text-md font-bold text-amber-600 tracking-tight">Sistem Penjadwalan Perkuliahan</span>
+    <div class="h-20 flex items-center justify-between px-6 pt-2">
+        <div class="flex items-center">
+            <img src="{{ asset('images/jkblogo1.png') }}" alt="Logo" class="h-8 w-8 mr-3">
+            <span class="text-md font-bold text-amber-600 tracking-tight">Sistem Penjadwalan Perkuliahan</span>
+        </div>
+        <button type="button" onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-amber-600 focus:outline-none p-1 transition" aria-label="Close Sidebar">
+            <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
     </div>
 
     <nav class="flex-1 overflow-y-auto px-4 py-2 space-y-1.5">

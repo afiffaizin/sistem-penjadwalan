@@ -97,13 +97,16 @@
     </head>
     <body class="bg-gray-50 text-gray-800 h-screen flex overflow-hidden font-sans">
 
+        <!-- Mobile Sidebar Backdrop -->
+        <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-gray-900/50 z-30 hidden md:hidden transition-opacity"></div>
+
         @include('layouts.sidebar')
 
-        <div class="flex-1 flex flex-col h-screen overflow-hidden">
+        <div class="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
             
             @include('layouts.navbar')
 
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 px-8 pb-8 pt-4">
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 px-4 md:px-8 pb-8 pt-4">
                 @yield('content')
             </main>
             
@@ -113,6 +116,32 @@
         <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
         <script>
+            function toggleSidebar() {
+                const sidebar = document.getElementById('sidebar');
+                const backdrop = document.getElementById('sidebarBackdrop');
+                if (sidebar && backdrop) {
+                    const isHidden = sidebar.classList.contains('-translate-x-full');
+                    if (isHidden) {
+                        sidebar.classList.remove('-translate-x-full');
+                        sidebar.classList.add('translate-x-0');
+                        backdrop.classList.remove('hidden');
+                    } else {
+                        sidebar.classList.remove('translate-x-0');
+                        sidebar.classList.add('-translate-x-full');
+                        backdrop.classList.add('hidden');
+                    }
+                }
+            }
+
+            window.addEventListener('resize', function() {
+                if (window.innerWidth >= 768) {
+                    const backdrop = document.getElementById('sidebarBackdrop');
+                    if (backdrop && !backdrop.classList.contains('hidden')) {
+                        backdrop.classList.add('hidden');
+                    }
+                }
+            });
+
             $(document).ready(function() {
                 $('.select2-filter').each(function() {
                     $(this).select2({

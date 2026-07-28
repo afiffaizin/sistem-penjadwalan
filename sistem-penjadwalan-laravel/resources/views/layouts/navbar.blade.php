@@ -1,6 +1,6 @@
-<header class="h-20 bg-white flex items-center justify-between px-8 z-10 flex-shrink-0 mb-2 border-b border-gray-100">
+<header class="h-20 bg-white flex items-center justify-between px-4 md:px-8 z-10 flex-shrink-0 mb-2 border-b border-gray-100">
     <div class="flex items-center gap-4">
-        <button class="md:hidden text-gray-500 hover:text-amber-600 focus:outline-none">
+        <button type="button" onclick="toggleSidebar()" class="md:hidden text-gray-500 hover:text-amber-600 focus:outline-none p-2 rounded-lg hover:bg-gray-100 transition" aria-label="Toggle Menu">
             <i class="fa-solid fa-bars text-xl"></i>
         </button>
     </div>
