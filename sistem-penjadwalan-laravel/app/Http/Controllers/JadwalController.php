@@ -122,7 +122,7 @@ class JadwalController extends Controller
 
         try {
             // 4. Kirim data ke Python
-            $response = Http::timeout(400)
+            $response = Http::timeout(700)
                 ->post(config('services.python.url') . '/api/generate-jadwal', [
                     'pengampu' => $pengampu,
                     'ruangan' => $ruangan,
