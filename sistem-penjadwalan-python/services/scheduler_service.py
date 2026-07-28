@@ -70,7 +70,12 @@ def _precheck_feasibility(tasks, rooms_by_cat, unavail_by_dosen, num_hari, num_s
         dosen_tasks[t['dosen_id']].append(t)
 
     for dosen_id, dtasks in dosen_tasks.items():
-        blocked_days = unavail_by_dosen.get(int(dosen_id), set())
+        try:
+            d_id = int(dosen_id)
+        except (ValueError, TypeError):
+            d_id = dosen_id
+            
+        blocked_days = unavail_by_dosen.get(d_id, set())
         avail_days = [d for d in range(num_hari) if d not in blocked_days]
         capacity = sum(num_sesi if d != friday_idx else (num_sesi - 1) for d in avail_days)
         total_hours = sum(t['durasi'] for t in dtasks)
@@ -139,22 +144,23 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
 
     # ── 1. Build tasks from pengampu (same logic as before) ──
     tasks = []
-    for p in data_pengampu:
-        p_id = p['id']
-        jt = p.get('jam_teori', 0)
-        jp = p.get('jam_praktikum', 0)
+    # If the payload format doesn't have an 'id' but rather 'nip', it might be using the output of cleansing_service directly
+    for i, p in enumerate(data_pengampu):
+        p_id = p.get('id', i + 1)
+        jt = p.get('jam_teori', p.get('sks_teori', 0))
+        jp = p.get('jam_praktikum', p.get('sks_praktikum', 0))
 
         if jt > 0:
             tasks.append({
                 'task_id': f"{p_id}_T",
                 'pengampu_id': p_id,
-                'dosen_id': p['dosen_id'],
-                'dosen_nama': p.get('dosen_nama', ''),
-                'mata_kuliah_id': p['mata_kuliah_id'],
-                'mata_kuliah_nama': p.get('mata_kuliah_nama', ''),
-                'kelas_id': p['kelas_id'],
-                'kelas_nama': p.get('kelas_nama', ''),
-                'tahun_ajar_id': p['tahun_ajar_id'],
+                'dosen_id': p.get('dosen_id', p.get('kode_dosen', '')),
+                'dosen_nama': p.get('dosen_nama', p.get('nama_dosen', '')),
+                'mata_kuliah_id': p.get('mata_kuliah_id', p.get('nama_mk', '')),
+                'mata_kuliah_nama': p.get('mata_kuliah_nama', p.get('nama_mk', '')),
+                'kelas_id': p.get('kelas_id', p.get('kelas', '')),
+                'kelas_nama': p.get('kelas_nama', p.get('kelas', '')),
+                'tahun_ajar_id': p.get('tahun_ajar_id', 1),
                 'durasi': jt,
                 'jenis': 'teori',
             })
@@ -162,13 +168,13 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             tasks.append({
                 'task_id': f"{p_id}_P",
                 'pengampu_id': p_id,
-                'dosen_id': p['dosen_id'],
-                'dosen_nama': p.get('dosen_nama', ''),
-                'mata_kuliah_id': p['mata_kuliah_id'],
-                'mata_kuliah_nama': p.get('mata_kuliah_nama', ''),
-                'kelas_id': p['kelas_id'],
-                'kelas_nama': p.get('kelas_nama', ''),
-                'tahun_ajar_id': p['tahun_ajar_id'],
+                'dosen_id': p.get('dosen_id', p.get('kode_dosen', '')),
+                'dosen_nama': p.get('dosen_nama', p.get('nama_dosen', '')),
+                'mata_kuliah_id': p.get('mata_kuliah_id', p.get('nama_mk', '')),
+                'mata_kuliah_nama': p.get('mata_kuliah_nama', p.get('nama_mk', '')),
+                'kelas_id': p.get('kelas_id', p.get('kelas', '')),
+                'kelas_nama': p.get('kelas_nama', p.get('kelas', '')),
+                'tahun_ajar_id': p.get('tahun_ajar_id', 1),
                 'durasi': jp,
                 'jenis': 'praktikum',
             })
@@ -194,8 +200,8 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
     room_idx_map = {}   # cat → {room_id: index}
     room_list_map = {}  # cat → [room_id, ...]
     for cat, rooms in rooms_by_cat.items():
-        room_list_map[cat] = [r['id'] for r in rooms]
-        room_idx_map[cat] = {r['id']: i for i, r in enumerate(rooms)}
+        room_list_map[cat] = [r.get('id', r.get('ruang', '')) for r in rooms]
+        room_idx_map[cat] = {r.get('id', r.get('ruang', '')): i for i, r in enumerate(rooms)}
 
     # ── Pre-index unavailable days by dosen ──
     hari_index = {h: i for i, h in enumerate(hari_kerja)}
@@ -204,7 +210,10 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
         did = item.get('dosen_id')
         h = item.get('hari')
         if did is not None and h in hari_index:
-            unavail_by_dosen.setdefault(int(did), set()).add(hari_index[h])
+            try:
+                unavail_by_dosen.setdefault(int(did), set()).add(hari_index[h])
+            except (ValueError, TypeError):
+                unavail_by_dosen.setdefault(did, set()).add(hari_index[h])
 
     # ── Pre-solve feasibility checks ──
     primary_cause, reasons, recommendation = _precheck_feasibility(tasks, rooms_by_cat, unavail_by_dosen, num_hari, num_sesi)
@@ -217,22 +226,21 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             "recommendation": recommendation,
         }
 
-    # ── 2. Create compact variables: 3 IntVars per task ──
-    # For each task i:
-    #   day[i]   ∈ [0, num_hari-1]
-    #   start[i] ∈ [0, num_sesi - durasi]   (0-indexed start session)
-    #   room[i]  ∈ [0, len(valid_rooms)-1]   (index into category room list)
+
+    # -- 2. Create variables (Interval-based for AddNoOverlap) --
     day_vars = []
     start_vars = []
     room_vars = []
-
+    task_intervals = {} # i -> d -> interval_var
+    task_presences = {} # i -> d -> bool_var
+    
     for i, t in enumerate(tasks):
-        cat = t['jenis']
+        cat = t["jenis"]
         num_rooms = len(rooms_by_cat.get(cat, []))
         if num_rooms == 0:
-            cat_labels = {'teori': 'Teori', 'praktikum': 'Praktikum'}
+            cat_labels = {"teori": "Teori", "praktikum": "Praktikum"}
             label = cat_labels.get(cat, cat.title())
-            mk_name = t.get('mata_kuliah_nama', t['task_id'])
+            mk_name = t.get("mata_kuliah_nama", t["task_id"])
             return {
                 "status_solver": "GAGAL",
                 "pesan": "Kategori ruangan tidak ditemukan.",
@@ -243,145 +251,120 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 "recommendation": f"Silakan tambahkan minimal satu ruangan {label} pada master data, lalu coba generate jadwal kembali.",
             }
 
-        durasi = t['durasi']
+        durasi = t["durasi"]
         max_start = num_sesi - durasi  # 0-indexed
 
-        day_vars.append(model.NewIntVar(0, num_hari - 1, f"day_{i}"))
-        start_vars.append(model.NewIntVar(0, max_start, f"start_{i}"))
-        room_vars.append(model.NewIntVar(0, num_rooms - 1, f"room_{i}"))
-
+        dv = model.NewIntVar(0, num_hari - 1, f"day_{i}")
+        sv = model.NewIntVar(0, max_start, f"start_{i}")
+        rv = model.NewIntVar(0, num_rooms - 1, f"room_{i}")
+        
+        day_vars.append(dv)
+        start_vars.append(sv)
+        room_vars.append(rv)
+        
+        task_intervals[i] = {}
+        task_presences[i] = {}
+        for d in range(num_hari):
+            p = model.NewBoolVar(f"p_{i}_{d}")
+            model.Add(dv == d).OnlyEnforceIf(p)
+            model.Add(dv != d).OnlyEnforceIf(p.Not())
+            task_presences[i][d] = p
+            
+            ev = model.NewIntVar(durasi, num_sesi, f"end_{i}_{d}")
+            model.Add(ev == sv + durasi)
+            iv = model.NewOptionalIntervalVar(sv, durasi, ev, p, f"int_{i}_{d}")
+            task_intervals[i][d] = iv
+            
     n = len(tasks)
 
-    # Helper: linearised timeslot = day * num_sesi + start_session
-    # Used for ordering and overlap detection
+    # Helper for C8 (Teori before Praktikum)
     def _time_var(i):
-        """Return an IntVar = day[i] * num_sesi + start[i]."""
         tv = model.NewIntVar(0, num_hari * num_sesi - 1, f"time_{i}")
         model.Add(tv == day_vars[i] * num_sesi + start_vars[i])
         return tv
 
-    # ── 3. Constraints ──
+    # -- 3. Constraints --
 
-    # C6: Wajib Istirahat Jumat Sesi 5  (day=4, session-index=4)
-    # A task occupies sessions [start, start+dur-1].  Block if it covers index 4 on Friday.
-    # Equivalent: if day==4 then NOT (start <= 4 AND start+dur-1 >= 4)
-    #           → if day==4 then (start > 4 OR start+dur-1 < 4)
-    #           → if day==4 then (start >= 5 OR start <= 3 - 0) → start >= 5 OR start+dur <= 4
+    # C6: Wajib Istirahat Jumat Sesi 5 (index 4)
     for i, t in enumerate(tasks):
-        durasi = t['durasi']
-        is_friday = model.NewBoolVar(f"fri_{i}")
-        model.Add(day_vars[i] == 4).OnlyEnforceIf(is_friday)
-        model.Add(day_vars[i] != 4).OnlyEnforceIf(is_friday.Not())
+        durasi = t["durasi"]
+        is_friday = task_presences[i][4]
 
-        # If friday: task must not cover session-index 4
-        # Task covers [start, start+dur-1].  Covers index 4 iff start <= 4 AND start+dur-1 >= 4
-        # → start <= 4 AND start >= 5-dur → start ∈ [max(0,5-dur), 4]
-        # Forbid that range on friday.
         low = max(0, 5 - durasi)
         high = 4
         if low <= high:
-            # if is_friday → start < low OR start > high
             ok_before = model.NewBoolVar(f"fri_ok_b_{i}")
             ok_after = model.NewBoolVar(f"fri_ok_a_{i}")
             model.Add(start_vars[i] <= low - 1).OnlyEnforceIf(ok_before)
             model.Add(start_vars[i] >= low).OnlyEnforceIf(ok_before.Not())
             model.Add(start_vars[i] >= high + 1).OnlyEnforceIf(ok_after)
             model.Add(start_vars[i] <= high).OnlyEnforceIf(ok_after.Not())
-            # friday → at least one of ok_before / ok_after
             model.AddBoolOr([ok_before, ok_after]).OnlyEnforceIf(is_friday)
 
     # C7: Dosen unavailable days
     for i, t in enumerate(tasks):
-        blocked = unavail_by_dosen.get(int(t['dosen_id']), set())
+        did = t["dosen_id"]
+        try:
+            d_id = int(did)
+        except (ValueError, TypeError):
+            d_id = did
+        blocked = unavail_by_dosen.get(d_id, set())
         for bd in blocked:
             model.Add(day_vars[i] != bd)
 
-    # C3: Anti Bentrok Ruangan  — no two tasks in the same physical room at overlapping times
-    # C4: Anti Bentrok Dosen    — no dosen teaches two tasks at overlapping times
-    # C5: Anti Bentrok Kelas    — no kelas has two tasks at overlapping times
-    #
-    # For every pair (i,j) sharing a resource, we need a no-overlap constraint:
-    #   They overlap iff same_day AND start[i] < start[j]+dur[j] AND start[j] < start[i]+dur[i]
-    #   → forbid that conjunction.
-    #
-    # We use reified bools + interval approach:
-    #   same_day → (end[i] <= start[j]) OR (end[j] <= start[i])
-    #   For room: also require same physical room  (room_id equality via category index)
-
-    # Group tasks by shared resources for pairwise constraints
-    # Build index structures
+    # C4 & C5: No Overlap for Dosen and Kelas
     tasks_by_dosen = {}
     tasks_by_kelas = {}
     tasks_by_cat = {}
     for i, t in enumerate(tasks):
-        tasks_by_dosen.setdefault(t['dosen_id'], []).append(i)
-        tasks_by_kelas.setdefault(t['kelas_id'], []).append(i)
-        tasks_by_cat.setdefault(t['jenis'], []).append(i)
+        tasks_by_dosen.setdefault(t["dosen_id"], []).append(i)
+        tasks_by_kelas.setdefault(t["kelas_id"], []).append(i)
+        tasks_by_cat.setdefault(t["jenis"], []).append(i)
+        
+    for d in range(num_hari):
+        for dosen_id, idxs in tasks_by_dosen.items():
+            if len(idxs) > 1:
+                model.AddNoOverlap([task_intervals[i][d] for i in idxs])
+                
+        for kelas_id, idxs in tasks_by_kelas.items():
+            if len(idxs) > 1:
+                model.AddNoOverlap([task_intervals[i][d] for i in idxs])
 
-    def add_no_overlap_pair(i, j):
-        """If same day → one must finish before other starts."""
-        same_day = model.NewBoolVar(f"sd_{i}_{j}")
-        model.Add(day_vars[i] == day_vars[j]).OnlyEnforceIf(same_day)
-        model.Add(day_vars[i] != day_vars[j]).OnlyEnforceIf(same_day.Not())
-
-        # i before j OR j before i  (when same day)
-        i_before_j = model.NewBoolVar(f"ib_{i}_{j}")
-        model.Add(start_vars[i] + tasks[i]['durasi'] <= start_vars[j]).OnlyEnforceIf(i_before_j)
-        model.Add(start_vars[i] + tasks[i]['durasi'] > start_vars[j]).OnlyEnforceIf(i_before_j.Not())
-
-        j_before_i = model.NewBoolVar(f"jb_{i}_{j}")
-        model.Add(start_vars[j] + tasks[j]['durasi'] <= start_vars[i]).OnlyEnforceIf(j_before_i)
-        model.Add(start_vars[j] + tasks[j]['durasi'] > start_vars[i]).OnlyEnforceIf(j_before_i.Not())
-
-        model.AddBoolOr([same_day.Not(), i_before_j, j_before_i])
-
-    # C4: Dosen — pairwise no-overlap among tasks of same dosen
-    for dosen_id, idxs in tasks_by_dosen.items():
-        for a in range(len(idxs)):
-            for b in range(a + 1, len(idxs)):
-                add_no_overlap_pair(idxs[a], idxs[b])
-
-    # C5: Kelas — pairwise no-overlap among tasks of same kelas
-    for kelas_id, idxs in tasks_by_kelas.items():
-        for a in range(len(idxs)):
-            for b in range(a + 1, len(idxs)):
-                add_no_overlap_pair(idxs[a], idxs[b])
-
-    # C3: Ruangan — pairwise no-overlap among tasks that *could* share a room
-    # Two tasks share a room iff same category AND same room index → same physical room
+    # C3: No Overlap for Rooms
     for cat, idxs in tasks_by_cat.items():
-        for a in range(len(idxs)):
-            for b in range(a + 1, len(idxs)):
-                i, j = idxs[a], idxs[b]
-                # same room?
-                same_room = model.NewBoolVar(f"sr_{i}_{j}")
-                model.Add(room_vars[i] == room_vars[j]).OnlyEnforceIf(same_room)
-                model.Add(room_vars[i] != room_vars[j]).OnlyEnforceIf(same_room.Not())
+        num_rooms = len(rooms_by_cat[cat])
+        if len(idxs) > 1:
+            for d in range(num_hari):
+                for r in range(num_rooms):
+                    room_day_intervals = []
+                    for i in idxs:
+                        p_dr = model.NewBoolVar(f"p_{i}_{d}_{r}")
+                        in_r = model.NewBoolVar(f"in_r_{i}_{r}")
+                        model.Add(room_vars[i] == r).OnlyEnforceIf(in_r)
+                        model.Add(room_vars[i] != r).OnlyEnforceIf(in_r.Not())
+                        
+                        # p_dr == task_presences[i][d] AND in_r
+                        model.AddImplication(p_dr, task_presences[i][d])
+                        model.AddImplication(p_dr, in_r)
+                        model.AddBoolOr([task_presences[i][d].Not(), in_r.Not(), p_dr])
+                        
+                        ev = model.NewIntVar(tasks[i]["durasi"], num_sesi, f"end_r_{i}_{d}_{r}")
+                        model.Add(ev == start_vars[i] + tasks[i]["durasi"])
+                        iv = model.NewOptionalIntervalVar(start_vars[i], tasks[i]["durasi"], ev, p_dr, f"int_r_{i}_{d}_{r}")
+                        room_day_intervals.append(iv)
+                        
+                    if len(room_day_intervals) > 1:
+                        model.AddNoOverlap(room_day_intervals)
 
-                same_day = model.NewBoolVar(f"sdr_{i}_{j}")
-                model.Add(day_vars[i] == day_vars[j]).OnlyEnforceIf(same_day)
-                model.Add(day_vars[i] != day_vars[j]).OnlyEnforceIf(same_day.Not())
-
-                i_before_j = model.NewBoolVar(f"ibr_{i}_{j}")
-                model.Add(start_vars[i] + tasks[i]['durasi'] <= start_vars[j]).OnlyEnforceIf(i_before_j)
-                model.Add(start_vars[i] + tasks[i]['durasi'] > start_vars[j]).OnlyEnforceIf(i_before_j.Not())
-
-                j_before_i = model.NewBoolVar(f"jbr_{i}_{j}")
-                model.Add(start_vars[j] + tasks[j]['durasi'] <= start_vars[i]).OnlyEnforceIf(j_before_i)
-                model.Add(start_vars[j] + tasks[j]['durasi'] > start_vars[i]).OnlyEnforceIf(j_before_i.Not())
-
-                # same_room AND same_day → one before other
-                model.AddBoolOr([same_room.Not(), same_day.Not(), i_before_j, j_before_i])
-
-    # C8: Teori before Praktikum (for pengampu that have both)
+    # C8: Teori before Praktikum
     tasks_by_pengampu = {}
     for i, t in enumerate(tasks):
-        tasks_by_pengampu.setdefault(t['pengampu_id'], []).append(i)
+        tasks_by_pengampu.setdefault(t["pengampu_id"], []).append(i)
 
     time_vars_cache = {}
     for pengampu_id, idxs in tasks_by_pengampu.items():
-        teori_idx = next((i for i in idxs if tasks[i]['jenis'] == 'teori'), None)
-        prak_idx = next((i for i in idxs if tasks[i]['jenis'] == 'praktikum'), None)
+        teori_idx = next((i for i in idxs if tasks[i]["jenis"] == "teori"), None)
+        prak_idx = next((i for i in idxs if tasks[i]["jenis"] == "praktikum"), None)
         if teori_idx is None or prak_idx is None:
             continue
 
@@ -391,7 +374,6 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             time_vars_cache[prak_idx] = _time_var(prak_idx)
 
         model.Add(time_vars_cache[teori_idx] < time_vars_cache[prak_idx])
-
     # ── 4. Solve ──
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 300.0
