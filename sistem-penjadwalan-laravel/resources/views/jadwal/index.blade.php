@@ -26,9 +26,9 @@
         </div>
     @endif
     @if(session('error'))
-        <div class="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-xl mb-6 text-sm font-bold shadow-sm flex items-center gap-3">
-            <i class="fa-solid fa-circle-exclamation text-red-500 text-lg"></i>
-            {{ session('error') }}
+        <div class="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-xl mb-6 text-sm font-bold shadow-sm flex items-start gap-3">
+            <i class="fa-solid fa-circle-exclamation text-red-500 text-lg mt-0.5"></i>
+            <div>{!! session('error') !!}</div>
         </div>
     @endif
 

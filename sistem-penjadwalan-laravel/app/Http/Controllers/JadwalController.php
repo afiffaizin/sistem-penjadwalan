@@ -59,7 +59,7 @@ class JadwalController extends Controller
         }
 
         // 2. Tarik Data Dosen
-        $pengampu = DosenMatkul::with('mata_kuliah')
+        $pengampu = DosenMatkul::with(['mata_kuliah', 'dosen', 'kelas'])
             ->where('tahun_ajar_id', $targetTahunAjarId)
             ->get()
             ->reject(function ($item) {
@@ -78,8 +78,11 @@ class JadwalController extends Controller
                 return [
                     'id' => $item->id,
                     'dosen_id' => $item->dosen_id,
+                    'dosen_nama' => $item->dosen->nama ?? '-',
                     'mata_kuliah_id' => $item->mata_kuliah_id,
+                    'mata_kuliah_nama' => $item->mata_kuliah->nama ?? '-',
                     'kelas_id' => $item->kelas_id,
+                    'kelas_nama' => $item->kelas->nama ?? '-',
                     'tahun_ajar_id' => $item->tahun_ajar_id,
                     'jam_teori' => $sksTeori * 1,
                     'jam_praktikum' => $sksPraktikum * 2
@@ -109,7 +112,12 @@ class JadwalController extends Controller
             ->toArray();
 
         if (empty($pengampu) || empty($ruangan)) {
-            return back()->with('error', 'Data Pengampu atau Ruangan pada semester ini masih kosong.');
+            return back()->with('error',
+                '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
+                '<strong>Alasan:</strong><br>Data tidak lengkap.<br>' .
+                '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Belum ada data ploting dosen atau data ruangan pada semester ini.</li></ul><br>' .
+                '<strong>Rekomendasi:</strong><br>• Silakan lengkapi data ploting dosen mengajar dan data ruangan terlebih dahulu, lalu coba kembali.'
+            );
         }
 
         try {
@@ -122,13 +130,40 @@ class JadwalController extends Controller
                 ]);
 
             if ($response->failed()) {
-                return back()->with('error', 'Gagal terhubung ke Python. Pastikan server Uvicorn berjalan.');
+                return back()->with('error',
+                    '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
+                    '<strong>Alasan:</strong><br>Kesalahan koneksi.<br>' .
+                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal terhubung ke server penjadwalan.</li></ul><br>' .
+                    '<strong>Rekomendasi:</strong><br>• Pastikan server penjadwalan (Uvicorn) sedang berjalan dan coba lagi.'
+                );
             }
 
             $hasil = $response->json();
 
             if (isset($hasil['status_solver']) && $hasil['status_solver'] === 'GAGAL') {
-                return back()->with('error', 'Sistem Gagal menemukan jadwal: ' . $hasil['pesan']);
+                $pesanError = '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>';
+                
+                if (!empty($hasil['pesan'])) {
+                    $pesanError .= '<strong>Alasan:</strong><br>' . e($hasil['pesan']);
+                } else {
+                    $pesanError .= '<strong>Alasan:</strong><br>Terjadi kendala pada proses penjadwalan.';
+                }
+
+                if (!empty($hasil['violations'])) {
+                    $pesanError .= '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600">';
+                    foreach ($hasil['violations'] as $v) {
+                        // Parse **bold** syntax to <strong> HTML tag securely
+                        $formatted_v = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', e($v));
+                        $pesanError .= '<li>' . $formatted_v . '</li>';
+                    }
+                    $pesanError .= '</ul>';
+                }
+
+                if (!empty($hasil['recommendation'])) {
+                    $pesanError .= '<br><br><strong>Rekomendasi:</strong><br>• ' . e($hasil['recommendation']);
+                }
+
+                return back()->with('error', $pesanError);
             }
 
             // 5. Simpan ke Database
@@ -155,10 +190,20 @@ class JadwalController extends Controller
                     ->with('success', 'Jadwal berhasil digenerate khusus untuk semester ini tanpa menghapus data semester lain!');
             } catch (\Exception $e) {
                 DB::rollBack();
-                return back()->with('error', 'Gagal menyimpan jadwal ke database: ' . $e->getMessage());
+                return back()->with('error',
+                    '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
+                    '<strong>Alasan:</strong><br>Kesalahan database.<br>' .
+                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal menyimpan jadwal yang dibuat ke dalam database.</li></ul><br>' .
+                    '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
+                );
             }
         } catch (\Exception $e) {
-            return back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
+            return back()->with('error',
+                '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
+                '<strong>Alasan:</strong><br>Kesalahan sistem.<br>' .
+                '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Terjadi kesalahan sistem yang tidak terduga.</li></ul><br>' .
+                '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
+            );
         }
     }
 

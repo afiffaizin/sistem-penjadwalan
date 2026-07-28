@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 
 class KaprodiController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         $user = auth()->user();
 
@@ -28,14 +28,27 @@ class KaprodiController extends Controller
 
         $prodiId = $user->prodi_id;
         $prodi = ProgramStudi::find($prodiId);
-        $activeTahunAjarIds = TahunAjar::where('is_active', true)->pluck('id')->toArray();
+        
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
+        
+        $latestJadwalTaId = Jadwal::latest('created_at')->value('tahun_ajar_id');
+        $activeTahunAjar = TahunAjar::where('is_active', true)->first();
+        $defaultTahunAjarId = $latestJadwalTaId ?? $activeTahunAjar?->id;
+        
+        $selectedTahunAjarId = $request->input('tahun_ajar_id', $defaultTahunAjarId);
 
-        $totalKelas = Kelas::where('prodi_id', $prodiId)->count();
-        $kelasIds = Kelas::where('prodi_id', $prodiId)->pluck('id')->toArray();
+        $queryTahun = function ($q) use ($selectedTahunAjarId) {
+            if ($selectedTahunAjarId) {
+                $q->where('tahun_ajar_id', $selectedTahunAjarId);
+            }
+        };
+
+        $totalKelas = Kelas::where('prodi_id', $prodiId)->where($queryTahun)->count();
+        $kelasIds = Kelas::where('prodi_id', $prodiId)->where($queryTahun)->pluck('id')->toArray();
 
         $jadwals = Jadwal::with(['mata_kuliah', 'ruang'])
             ->whereIn('kelas_id', $kelasIds)
-            ->whereIn('tahun_ajar_id', $activeTahunAjarIds)
+            ->where($queryTahun)
             ->get();
 
         $totalDosen = $jadwals->pluck('dosen_id')->unique()->count();
@@ -82,7 +95,9 @@ class KaprodiController extends Controller
             'totalDosen',
             'totalSks',
             'kepadatanHari',
-            'jenisKuliah'
+            'jenisKuliah',
+            'tahunAjars',
+            'selectedTahunAjarId'
         ));
     }
 
@@ -96,8 +111,12 @@ class KaprodiController extends Controller
 
         $prodiId = $user->prodi_id;
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
+        
+        $latestJadwalTaId = Jadwal::latest('created_at')->value('tahun_ajar_id');
         $activeTahunAjar = TahunAjar::where('is_active', true)->first();
-        $selectedTahunAjarId = $request->input('tahun_ajar_id', $activeTahunAjar?->id);
+        $defaultTahunAjarId = $latestJadwalTaId ?? $activeTahunAjar?->id;
+        
+        $selectedTahunAjarId = $request->input('tahun_ajar_id', $defaultTahunAjarId);
 
         $kelasQuery = Kelas::where('prodi_id', $prodiId);
         if ($selectedTahunAjarId) {
@@ -225,8 +244,12 @@ class KaprodiController extends Controller
         $hariKerja = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'];
         $prodi = ProgramStudi::findOrFail($user->prodi_id);
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
+        
+        $latestJadwalTaId = Jadwal::latest('created_at')->value('tahun_ajar_id');
         $activeTahunAjar = TahunAjar::where('is_active', true)->first();
-        $selectedTahunAjarId = $request->input('tahun_ajar_id', $activeTahunAjar?->id);
+        $defaultTahunAjarId = $latestJadwalTaId ?? $activeTahunAjar?->id;
+        
+        $selectedTahunAjarId = $request->input('tahun_ajar_id', $defaultTahunAjarId);
 
         $dosens = Dosen::whereHas('prodis', function ($query) use ($user) {
                 $query->where('program_studis.id', $user->prodi_id);

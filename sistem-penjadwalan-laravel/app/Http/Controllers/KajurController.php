@@ -14,21 +14,33 @@ use Illuminate\Support\Facades\DB;
 
 class KajurController extends Controller
 {
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         if (auth()->user()->role !== 'kajur') {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 
-        $activeTahunAjarIds = TahunAjar::where('is_active', true)->pluck('id')->toArray();
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
+        
+        $latestJadwalTaId = Jadwal::latest('created_at')->value('tahun_ajar_id');
+        $activeTahunAjar = TahunAjar::where('is_active', true)->first();
+        $defaultTahunAjarId = $latestJadwalTaId ?? $activeTahunAjar?->id;
+        
+        $selectedTahunAjarId = $request->input('tahun_ajar_id', $defaultTahunAjarId);
+
+        $queryTahun = function ($q) use ($selectedTahunAjarId) {
+            if ($selectedTahunAjarId) {
+                $q->where('tahun_ajar_id', $selectedTahunAjarId);
+            }
+        };
 
         // 1. Hitung Statistik
-        $totalDosen = Jadwal::whereIn('tahun_ajar_id', $activeTahunAjarIds)
+        $totalDosen = Jadwal::where($queryTahun)
             ->distinct('dosen_id')
             ->count('dosen_id');
 
-        $totalKelas = Kelas::count();
-        $totalRuang = Ruang::count();
+        $totalKelas = Kelas::where($queryTahun)->count();
+        $totalRuang = Ruang::where($queryTahun)->count();
 
         // 2. Data Beban Mengajar Per Prodi
         $bebanProdiMap = [];
@@ -41,7 +53,7 @@ class KajurController extends Controller
         }
 
         $jadwals = Jadwal::with(['kelas', 'mata_kuliah'])
-            ->whereIn('tahun_ajar_id', $activeTahunAjarIds)
+            ->where($queryTahun)
             ->get();
 
         // Kelompokkan dan jumlahkan SKS ke masing-masing Prodi
@@ -71,7 +83,7 @@ class KajurController extends Controller
             'data'  => array_values($jadwalPerHariMap) 
         ];
         
-        return view('kajur.dashboard', compact('totalDosen', 'totalKelas', 'totalRuang', 'bebanProdi', 'kepadatanHari'));
+        return view('kajur.dashboard', compact('totalDosen', 'totalKelas', 'totalRuang', 'bebanProdi', 'kepadatanHari', 'tahunAjars', 'selectedTahunAjarId'));
     }
 
     public function lihatJadwal(Request $request)
