@@ -81,6 +81,7 @@ class JadwalController extends Controller
                     'dosen_nama' => $item->dosen->nama ?? '-',
                     'mata_kuliah_id' => $item->mata_kuliah_id,
                     'mata_kuliah_nama' => $item->mata_kuliah->nama ?? '-',
+                    'group_matkul' => $item->mata_kuliah->kode_group ?? '-',
                     'kelas_id' => $item->kelas_id,
                     'kelas_nama' => $item->kelas->nama ?? '-',
                     'tahun_ajar_id' => $item->tahun_ajar_id,

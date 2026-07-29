@@ -127,6 +127,7 @@ class UploadExcelController extends Controller
                         'sks_teori' => $mk['sks_teori'],
                         'sks_praktikum' => $mk['sks_praktikum'],
                         'sks_total' => $mk['sks_total'],
+                        'kode_group' => $mk['kode_group'] ?? null,
                     ]
                 );
             }
@@ -150,7 +151,8 @@ class UploadExcelController extends Controller
                     [
                         'sks_teori' => $p['sks_teori'],
                         'sks_praktikum' => $p['sks_praktikum'],
-                        'sks_total' => ($p['sks_teori'] + $p['sks_praktikum'])
+                        'sks_total' => ($p['sks_teori'] + $p['sks_praktikum']),
+                        'kode_group' => $p['kode_group'] ?? null,
                     ]
                 );
 

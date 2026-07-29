@@ -37,6 +37,7 @@ class MataKuliahController extends Controller
             'sks_teori'     => 'required|numeric',
             'sks_praktikum' => 'required|numeric',
             'sks_total'     => 'required|numeric',
+            'kode_group'    => 'nullable|string',
             'prodi_id'      => 'required|exists:program_studis,id'
         ]);
 
@@ -57,6 +58,7 @@ class MataKuliahController extends Controller
             'sks_teori'     => 'required|numeric',
             'sks_praktikum' => 'required|numeric',
             'sks_total'     => 'required|numeric',
+            'kode_group'    => 'nullable|string',
             'prodi_id'      => 'required|exists:program_studis,id'
         ]);
 

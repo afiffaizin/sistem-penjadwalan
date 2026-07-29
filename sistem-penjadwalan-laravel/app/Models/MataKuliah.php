@@ -12,6 +12,7 @@ class MataKuliah extends Model
         'sks_teori',
         'sks_praktikum',
         'sks_total',
+        'kode_group',
         'prodi_id',
         'tahun_ajar_id'
     ];

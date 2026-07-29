@@ -161,6 +161,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 'kelas_id': p.get('kelas_id', p.get('kelas', '')),
                 'kelas_nama': p.get('kelas_nama', p.get('kelas', '')),
                 'tahun_ajar_id': p.get('tahun_ajar_id', 1),
+                'group_matkul': p.get('group_matkul', '-'),
                 'durasi': jt,
                 'jenis': 'teori',
             })
@@ -175,6 +176,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 'kelas_id': p.get('kelas_id', p.get('kelas', '')),
                 'kelas_nama': p.get('kelas_nama', p.get('kelas', '')),
                 'tahun_ajar_id': p.get('tahun_ajar_id', 1),
+                'group_matkul': p.get('group_matkul', '-'),
                 'durasi': jp,
                 'jenis': 'praktikum',
             })
@@ -374,6 +376,29 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             time_vars_cache[prak_idx] = _time_var(prak_idx)
 
         model.Add(time_vars_cache[teori_idx] < time_vars_cache[prak_idx])
+
+    # C9: Teori before Praktikum (Berdasarkan Grouping Matkul & Kelas)
+    tasks_by_kelas_group = {}
+    for i, t in enumerate(tasks):
+        group_id = t.get("group_matkul", "-")
+        kelas_id = t["kelas_id"]
+        
+        if group_id and str(group_id).strip() != "" and str(group_id).strip() != "-":
+            group_key = f"{kelas_id}_{group_id}"
+            tasks_by_kelas_group.setdefault(group_key, []).append(i)
+
+    for group_key, idxs in tasks_by_kelas_group.items():
+        teori_idx = next((i for i in idxs if tasks[i]["jenis"] == "teori"), None)
+        prak_idx = next((i for i in idxs if tasks[i]["jenis"] == "praktikum"), None)
+        
+        if teori_idx is not None and prak_idx is not None:
+            if teori_idx not in time_vars_cache:
+                time_vars_cache[teori_idx] = _time_var(teori_idx)
+            if prak_idx not in time_vars_cache:
+                time_vars_cache[prak_idx] = _time_var(prak_idx)
+                
+            model.Add(time_vars_cache[teori_idx] < time_vars_cache[prak_idx])
+
     # ── 4. Solve ──
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 600.0

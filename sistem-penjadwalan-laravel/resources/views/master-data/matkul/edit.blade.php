@@ -23,7 +23,7 @@
                 @error('nama') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">SKS Teori</label>
                     <input type="number" name="sks_teori" value="{{ old('sks_teori', $matkul->sks_teori) }}" 
@@ -36,13 +36,15 @@
                         class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2.5 outline-none transition @error('sks_praktikum') border-red-500 @enderror" required>
                     @error('sks_praktikum') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
                 </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">SKS Total</label>
                     <input type="number" name="sks_total" value="{{ old('sks_total', $matkul->sks_total) }}" 
                         class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2.5 outline-none transition bg-amber-50/50 @error('sks_total') border-red-500 @enderror" required>
                     @error('sks_total') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
                 </div>
-            </div>
 
                 <div>
                     <label class="block text-sm font-bold text-gray-700 mb-2">Program Studi</label>
@@ -56,6 +58,15 @@
                     </select>
                     @error('prodi_id') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
                 </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Kode Group (Opsional)</label>
+                    <input type="text" name="kode_group" value="{{ old('kode_group', $matkul->kode_group) }}" 
+                        class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2.5 outline-none transition @error('kode_group') border-red-500 @enderror" placeholder="Contoh: MB-01">
+                    <p class="text-xs text-gray-500 mt-1">Gunakan kode yang sama untuk menghubungkan Teori dan Praktikum</p>
+                    @error('kode_group') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
+                </div>
+            </div>
 
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <a href="{{ route('matkul.index') }}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-bold transition">Batal</a>
