@@ -46,7 +46,7 @@
                     
                     <div class="w-full sm:w-auto min-w-[200px]">
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tahun Akademik</label>
-                        <select name="tahun_ajar_id" onchange="this.form.submit()" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white font-semibold text-black shadow-sm cursor-pointer">
+                        <select name="tahun_ajar_id" onchange="document.getElementById('kelas_id_filter').value=''; this.form.submit()" class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white font-semibold text-black shadow-sm cursor-pointer">
                             @foreach($daftarTahunAjar as $ta)
                                 <option value="{{ $ta->id }}" {{ $targetTahunAjarId == $ta->id ? 'selected' : '' }}>
                                     {{ $ta->tahun }} - {{ $ta->semester }}
@@ -94,7 +94,7 @@
 
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Kelas</label>
-                    <select name="kelas_id" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
+                    <select name="kelas_id" id="kelas_id_filter" class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
                         <option value="">-- Semua Kelas --</option>
                         @foreach($kelas as $k)
                             <option value="{{ $k->id }}" {{ request('kelas_id') == $k->id ? 'selected' : '' }}>{{ $k->nama }}</option>

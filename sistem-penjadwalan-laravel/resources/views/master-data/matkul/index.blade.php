@@ -57,9 +57,9 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    @forelse($matkulList as $m)
+                    @forelse($matkulList as $index => $m)
                         <tr class="hover:bg-amber-50/50 transition">
-                            <td class="px-6 py-4 font-bold text-gray-800">{{ $m->nama }}</td>
+                            <td class="px-6 py-4 font-bold text-gray-800">{{ $matkulList->firstItem() + $index }}. {{ $m->nama }}</td>
                             <td class="px-6 py-4 text-center font-medium text-gray-700">
                                 {{ $m->sks_teori }} / {{ $m->sks_praktikum }} / <strong class="text-amber-600">{{ $m->sks_total }}</strong>
                             </td>
@@ -86,6 +86,9 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-100">
+            {{ $matkulList->withQueryString()->links() }}
         </div>
     </div>
 </div>

@@ -19,7 +19,7 @@ class KelasController extends Controller
             $query->where('tahun_ajar_id', $request->tahun_ajar_id);
         }
         
-        $kelasList = $query->get();
+        $kelasList = $query->paginate(10);
         
         return view('master-data.kelas.index', compact('kelasList', 'tahunAjars'));
     }

@@ -100,7 +100,7 @@ class JadwalViewService
             'daftarTahunAjar' => $daftarTahunAjar,
             'targetTahunAjarId' => $targetTahunAjarId,
             'dosens' => Dosen::whereIn('id', Jadwal::whereIn('tahun_ajar_id', $activeTahunAjarIds)->distinct()->pluck('dosen_id'))->orderBy('nama')->get(),
-            'kelas' => Kelas::orderBy('nama')->get(),
+            'kelas' => Kelas::whereIn('tahun_ajar_id', $activeTahunAjarIds)->orderBy('nama')->get(),
             'ruangs' => Ruang::orderBy('nama')->get(),
             'prodis' => ProgramStudi::orderBy('nama')->get(),
             'matrixJadwal' => $matrixJadwal,

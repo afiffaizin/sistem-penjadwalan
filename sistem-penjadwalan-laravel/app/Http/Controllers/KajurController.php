@@ -95,7 +95,7 @@ class KajurController extends Controller
         $activeTahunAjarIds = TahunAjar::where('is_active', true)->pluck('id')->toArray();
         $dosenIds = Jadwal::whereIn('tahun_ajar_id', $activeTahunAjarIds)->distinct()->pluck('dosen_id');
         $dosens = Dosen::whereIn('id', $dosenIds)->orderBy('nama')->get();
-        $kelas  = Kelas::orderBy('nama')->get();
+        $kelas  = Kelas::whereIn('tahun_ajar_id', $activeTahunAjarIds)->orderBy('nama')->get();
         $ruangs = Ruang::orderBy('nama')->get();
         $prodis = ProgramStudi::orderBy('nama')->get();
 

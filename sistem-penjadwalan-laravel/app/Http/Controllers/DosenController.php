@@ -18,7 +18,7 @@ class DosenController extends Controller
             $query->where('tahun_ajar_id', $request->tahun_ajar_id);
         }
 
-        $dosens = $query->get();
+        $dosens = $query->paginate(10);
 
         return view('master-data.dosen.index', compact('dosens', 'tahunAjars'));
     }

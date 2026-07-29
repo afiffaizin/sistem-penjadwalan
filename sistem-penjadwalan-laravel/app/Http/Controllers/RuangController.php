@@ -19,7 +19,7 @@ class RuangController extends Controller
             $query->where('tahun_ajar_id', $request->tahun_ajar_id);
         }
 
-        $ruangList = $query->get();
+        $ruangList = $query->paginate(10);
 
         return view('master-data.ruang.index', compact('ruangList', 'tahunAjars'));
     }
