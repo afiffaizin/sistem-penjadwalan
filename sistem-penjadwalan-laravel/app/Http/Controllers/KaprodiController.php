@@ -257,8 +257,10 @@ class KaprodiController extends Controller
             ->orderBy('nama')
             ->get();
 
+        $dosenIds = $dosens->pluck('id')->toArray();
+
         $requests = DosenUnavailableDay::with(['dosen', 'tahunAjar'])
-            ->where('prodi_id', $user->prodi_id)
+            ->whereIn('dosen_id', $dosenIds)
             ->when($selectedTahunAjarId, function ($query) use ($selectedTahunAjarId) {
                 $query->where('tahun_ajar_id', $selectedTahunAjarId);
             })
@@ -302,8 +304,7 @@ class KaprodiController extends Controller
             ->pluck('id')
             ->toArray();
 
-        DosenUnavailableDay::where('prodi_id', $user->prodi_id)
-            ->where('tahun_ajar_id', $tahunAjarId)
+        DosenUnavailableDay::where('tahun_ajar_id', $tahunAjarId)
             ->whereIn('dosen_id', $allowedDosenIds)
             ->delete();
 
@@ -345,7 +346,12 @@ class KaprodiController extends Controller
                 $query->where('tahun_ajar_id', $request->tahun_ajar_id);
             })
             ->when($request->filled('prodi_id'), function ($query) use ($request) {
-                $query->where('prodi_id', $request->prodi_id);
+                $query->where(function ($q) use ($request) {
+                    $q->where('prodi_id', $request->prodi_id)
+                      ->orWhereHas('dosen.prodis', function ($q2) use ($request) {
+                          $q2->where('program_studis.id', $request->prodi_id);
+                      });
+                });
             })
             ->when($request->filled('dosen_id'), function ($query) use ($request) {
                 $query->where('dosen_id', $request->dosen_id);
