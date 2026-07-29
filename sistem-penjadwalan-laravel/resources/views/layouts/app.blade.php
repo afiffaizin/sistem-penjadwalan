@@ -63,6 +63,10 @@
                 box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.08);
                 font-family: 'Inter', sans-serif;
                 overflow: hidden;
+                z-index: 9999 !important;
+            }
+            .select2-container--open {
+                z-index: 9999 !important;
             }
             .select2-container--default .select2-search--dropdown .select2-search__field {
                 border: 1px solid #e5e7eb;
