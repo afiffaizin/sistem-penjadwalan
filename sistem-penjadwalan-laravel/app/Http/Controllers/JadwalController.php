@@ -274,25 +274,73 @@ class JadwalController extends Controller
 
                 // TUKAR POSISI (SWAP)
                 if ($request->has('mode_tukar')) {
-                    // Cari jadwal lain yang menempati slot tujuan
-                    $jadwalTabrakan = Jadwal::where('hari', $hariBaru)
-                        ->where('kelas_id', $jadwalTarget->kelas_id)
+                    // Cari jadwal apa saja yang konflik dengan posisi baru (bisa bentrok kelas, dosen, atau ruangan)
+                    $konflik = Jadwal::where('hari', $hariBaru)
                         ->where('id', '!=', $jadwalTarget->id)
                         ->where(function ($q) use ($sesiMulaiBaru, $sesiSelesaiBaru) {
                             $q->where('sesi_mulai', '<=', $sesiSelesaiBaru)
                                 ->where('sesi_selesai', '>=', $sesiMulaiBaru);
-                        })->first();
+                        })
+                        ->where(function ($q) use ($jadwalTarget) {
+                            $q->where('kelas_id', $jadwalTarget->kelas_id)
+                              ->orWhere('dosen_id', $jadwalTarget->dosen_id)
+                              ->orWhere('ruang_id', $jadwalTarget->ruang_id);
+                        })->get();
+
+                    if ($konflik->count() > 1) {
+                        throw new \Exception("Gagal Tukar: Terdapat lebih dari 1 jadwal yang bertabrakan di slot tersebut. Tidak dapat melakukan swap otomatis.");
+                    }
+
+                    $jadwalTabrakan = $konflik->first();
 
                     if ($jadwalTabrakan) {
                         // Simpan posisi lama Jadwal Target untuk barter posisi
-                        $posisiLamaTarget = [
-                            'hari' => $jadwalTarget->hari,
-                            'sesi_mulai' => $jadwalTarget->sesi_mulai,
-                            'sesi_selesai' => $jadwalTarget->sesi_selesai
-                        ];
+                        $hariLama = $jadwalTarget->hari;
+                        $sesiMulaiLama = $jadwalTarget->sesi_mulai;
+                        $sesiSelesaiLama = $jadwalTarget->sesi_selesai;
+
+                        // CEK BENTROK UNTUK JADWAL TARGET DI POSISI BARU (abaikan jadwalTabrakan)
+                        $cekBentrokTarget = Jadwal::where('hari', $hariBaru)
+                            ->whereNotIn('id', [$jadwalTarget->id, $jadwalTabrakan->id])
+                            ->where(function ($q) use ($sesiMulaiBaru, $sesiSelesaiBaru) {
+                                $q->where('sesi_mulai', '<=', $sesiSelesaiBaru)
+                                    ->where('sesi_selesai', '>=', $sesiMulaiBaru);
+                            });
+
+                        if ((clone $cekBentrokTarget)->where('kelas_id', $jadwalTarget->kelas_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Kelas sudah memiliki jadwal matkul lain pada sesi tujuan.");
+                        }
+                        if ((clone $cekBentrokTarget)->where('dosen_id', $jadwalTarget->dosen_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Dosen bersangkutan sedang mengajar di kelas lain pada sesi tujuan.");
+                        }
+                        if ((clone $cekBentrokTarget)->where('ruang_id', $jadwalTarget->ruang_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Ruangan tersebut sedang digunakan untuk perkuliahan lain pada sesi tujuan.");
+                        }
+
+                        // CEK BENTROK UNTUK JADWAL TABRAKAN DI POSISI LAMA TARGET (abaikan jadwalTarget)
+                        $cekBentrokTabrakan = Jadwal::where('hari', $hariLama)
+                            ->whereNotIn('id', [$jadwalTarget->id, $jadwalTabrakan->id])
+                            ->where(function ($q) use ($sesiMulaiLama, $sesiSelesaiLama) {
+                                $q->where('sesi_mulai', '<=', $sesiSelesaiLama)
+                                    ->where('sesi_selesai', '>=', $sesiMulaiLama);
+                            });
+
+                        if ((clone $cekBentrokTabrakan)->where('kelas_id', $jadwalTabrakan->kelas_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Kelas jadwal yang ditukar sudah memiliki matkul lain pada sesi asal.");
+                        }
+                        if ((clone $cekBentrokTabrakan)->where('dosen_id', $jadwalTabrakan->dosen_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Dosen jadwal yang ditukar sedang mengajar di kelas lain pada sesi asal.");
+                        }
+                        if ((clone $cekBentrokTabrakan)->where('ruang_id', $jadwalTabrakan->ruang_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Ruangan jadwal yang ditukar sedang digunakan pada sesi asal.");
+                        }
 
                         // Pindahkan jadwal yang ditabrak ke posisi lama jadwal target
-                        $jadwalTabrakan->update($posisiLamaTarget);
+                        $jadwalTabrakan->update([
+                            'hari' => $hariLama,
+                            'sesi_mulai' => $sesiMulaiLama,
+                            'sesi_selesai' => $sesiSelesaiLama
+                        ]);
 
                         // Pindahkan jadwal target ke posisi baru
                         $jadwalTarget->update([
