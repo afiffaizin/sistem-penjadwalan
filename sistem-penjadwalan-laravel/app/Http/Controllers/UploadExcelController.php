@@ -19,6 +19,14 @@ use App\Models\DosenUnavailableDay;
 
 class UploadExcelController extends Controller
 {
+    /**
+     * Nama file temp unik per user untuk mencegah race condition antar sekretaris.
+     */
+    private function tempFileName(): string
+    {
+        return 'temp_data_' . auth()->id() . '.json';
+    }
+
     public function uploadForm()
     {
         return view('upload-data');
@@ -26,7 +34,7 @@ class UploadExcelController extends Controller
 
     public function cleansingView()
     {
-        $isCleansed = Storage::exists('temp_data.json');
+        $isCleansed = Storage::exists($this->tempFileName());
         $importHistories = TahunAjar::latest('id')->get();
         return view('cleansing', compact('isCleansed', 'importHistories'));
     }
@@ -46,17 +54,13 @@ class UploadExcelController extends Controller
             ->exists();
 
         if ($exists) {
-            return back()->with('error', 
+            return back()->with(
+                'error',
                 "<strong>❌ Upload dataset gagal.</strong><br><br>" .
-                "Dataset untuk Tahun Ajaran {$request->tahun_ajar} Semester {$request->semester} sudah tersedia.<br>" .
-                "Silakan gunakan data yang ada atau hapus data lama sebelum mengunggah yang baru."
+                    "Dataset untuk Tahun Ajaran {$request->tahun_ajar} Semester {$request->semester} sudah tersedia.<br>" .
+                    "Silakan gunakan data yang ada atau hapus data lama sebelum mengunggah yang baru."
             );
         }
-
-        session([
-            'upload_tahun' => $request->tahun_ajar,
-            'upload_semester' => $request->semester
-        ]);
 
         try {
             $response = Http::timeout(120)
@@ -67,12 +71,18 @@ class UploadExcelController extends Controller
 
             if ($response->failed()) {
                 $errorData = $response->json();
-                return back()->with('error', 'Gagal: ' . ($errorData['message'] ?? 'Error Python'));
+                return back()->with('error', 'Gagal: ' . e($errorData['message'] ?? 'Error Python'));
             }
 
             $data = $response->json();
 
-            Storage::put('temp_data.json', json_encode($data['data']));
+            // Simpan data cleansing + metadata tahun/semester dalam temp file per-user
+            $tempPayload = [
+                'tahun_ajar' => $request->tahun_ajar,
+                'semester'   => $request->semester,
+                'data'       => $data['data'],
+            ];
+            Storage::put($this->tempFileName(), json_encode($tempPayload));
 
             return redirect()->route('cleansing.view')->with('success', ' Data berhasil dianalisis dan dicleansing oleh Sistem!');
         } catch (\Exception $e) {
@@ -82,19 +92,24 @@ class UploadExcelController extends Controller
 
     public function storeDatabase(Request $request)
     {
-        if (!Storage::exists('temp_data.json')) {
+        $tempFile = $this->tempFileName();
+
+        if (!Storage::exists($tempFile)) {
             return redirect()->route('upload.form')->with('error', 'File data sementara hilang, silakan upload ulang Excel Anda.');
         }
 
-        $fileContent = Storage::get('temp_data.json');
-        $data = json_decode($fileContent, true);
+        $fileContent = Storage::get($tempFile);
+        $payload = json_decode($fileContent, true);
 
-        $y = (int) date('Y');
-        $m = (int) date('n');
-        $defaultTahun = ($m >= 7) ? "$y/" . ($y + 1) : ($y - 1) . "/$y";
+        // Ambil tahun/semester dari temp file (bukan session) agar tidak hilang saat session expired
+        $tahunUpload = $payload['tahun_ajar'] ?? null;
+        $semesterUpload = $payload['semester'] ?? null;
+        $data = $payload['data'] ?? null;
 
-        $tahunUpload = session('upload_tahun', $defaultTahun);
-        $semesterUpload = session('upload_semester', 'Gasal');
+        if (!$tahunUpload || !$semesterUpload || !$data) {
+            Storage::delete($tempFile);
+            return redirect()->route('upload.form')->with('error', 'Data sementara tidak valid, silakan upload ulang Excel Anda.');
+        }
 
         DB::beginTransaction();
 
@@ -127,6 +142,7 @@ class UploadExcelController extends Controller
                         'sks_teori' => $mk['sks_teori'],
                         'sks_praktikum' => $mk['sks_praktikum'],
                         'sks_total' => $mk['sks_total'],
+                        'kode_group' => $mk['kode_group'] ?? null,
                     ]
                 );
             }
@@ -150,7 +166,8 @@ class UploadExcelController extends Controller
                     [
                         'sks_teori' => $p['sks_teori'],
                         'sks_praktikum' => $p['sks_praktikum'],
-                        'sks_total' => ($p['sks_teori'] + $p['sks_praktikum'])
+                        'sks_total' => ($p['sks_teori'] + $p['sks_praktikum']),
+                        'kode_group' => $p['kode_group'] ?? null,
                     ]
                 );
 
@@ -168,13 +185,12 @@ class UploadExcelController extends Controller
 
             DB::commit();
 
-            Storage::delete('temp_data.json');
+            Storage::delete($tempFile);
 
-            session()->forget(['upload_tahun', 'upload_semester']);
-
-            return redirect()->route('jadwal.index')->with('success ', 'Seluruh data berhasil disimpan ke Database.');
+            return redirect()->route('jadwal.index')->with('success', 'Seluruh data berhasil disimpan ke Database.');
         } catch (\Exception $e) {
             DB::rollBack();
+            Storage::delete($tempFile);
             return back()->with('error', 'Gagal menyimpan ke Database: ' . $e->getMessage());
         }
     }
@@ -207,13 +223,12 @@ class UploadExcelController extends Controller
             TahunAjar::where('id', $taId)->delete();
 
             // Remove temp cleansing file if exists
-            if (Storage::exists('temp_data.json')) {
-                Storage::delete('temp_data.json');
+            $tempFile = $this->tempFileName();
+            if (Storage::exists($tempFile)) {
+                Storage::delete($tempFile);
             }
 
             DB::commit();
-
-            session()->forget(['upload_tahun', 'upload_semester']);
 
             return redirect()->route('cleansing.view')
                 ->with('success', 'Seluruh data hasil import berhasil direset. Silakan upload ulang file Excel.');

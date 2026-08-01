@@ -64,7 +64,7 @@ class JadwalController extends Controller
             ->get()
             ->reject(function ($item) {
                 if (!$item->mata_kuliah) {
-                    return false;
+                    return true;
                 }
                 $namaMk = strtolower($item->mata_kuliah->nama);
                 return str_contains($namaMk, 'proyek keamanan siber') ||
@@ -81,9 +81,11 @@ class JadwalController extends Controller
                     'dosen_nama' => $item->dosen->nama ?? '-',
                     'mata_kuliah_id' => $item->mata_kuliah_id,
                     'mata_kuliah_nama' => $item->mata_kuliah->nama ?? '-',
+                    'group_matkul' => $item->mata_kuliah->kode_group ?? '-',
                     'kelas_id' => $item->kelas_id,
                     'kelas_nama' => $item->kelas->nama ?? '-',
                     'tahun_ajar_id' => $item->tahun_ajar_id,
+                    'prodi_id' => $item->mata_kuliah->prodi_id ?? null,
                     'jam_teori' => $sksTeori * 1,
                     'jam_praktikum' => $sksPraktikum * 2
                 ];
@@ -92,11 +94,12 @@ class JadwalController extends Controller
             ->toArray();
 
         // 3. Tarik Data Ruangan
-        $ruangan = Ruang::all()->map(function ($r) {
+        $ruangan = Ruang::where('tahun_ajar_id', $targetTahunAjarId)->get()->map(function ($r) {
             return [
                 'id' => $r->id,
                 'nama' => $r->nama,
-                'kategori' => strtolower($r->kategori)
+                'kategori' => strtolower($r->kategori),
+                'prodi_id' => $r->prodi_id,
             ];
         })->toArray();
 
@@ -112,17 +115,18 @@ class JadwalController extends Controller
             ->toArray();
 
         if (empty($pengampu) || empty($ruangan)) {
-            return back()->with('error',
+            return back()->with(
+                'error',
                 '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                '<strong>Alasan:</strong><br>Data tidak lengkap.<br>' .
-                '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Belum ada data ploting dosen atau data ruangan pada semester ini.</li></ul><br>' .
-                '<strong>Rekomendasi:</strong><br>• Silakan lengkapi data ploting dosen mengajar dan data ruangan terlebih dahulu, lalu coba kembali.'
+                    '<strong>Alasan:</strong><br>Data tidak lengkap.<br>' .
+                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Belum ada data ploting dosen atau data ruangan pada semester ini.</li></ul><br>' .
+                    '<strong>Rekomendasi:</strong><br>• Silakan lengkapi data ploting dosen mengajar dan data ruangan terlebih dahulu, lalu coba kembali.'
             );
         }
 
         try {
             // 4. Kirim data ke Python
-            $response = Http::timeout(400)
+            $response = Http::timeout(800)
                 ->post(config('services.python.url') . '/api/generate-jadwal', [
                     'pengampu' => $pengampu,
                     'ruangan' => $ruangan,
@@ -130,11 +134,12 @@ class JadwalController extends Controller
                 ]);
 
             if ($response->failed()) {
-                return back()->with('error',
+                return back()->with(
+                    'error',
                     '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                    '<strong>Alasan:</strong><br>Kesalahan koneksi.<br>' .
-                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal terhubung ke server penjadwalan.</li></ul><br>' .
-                    '<strong>Rekomendasi:</strong><br>• Pastikan server penjadwalan (Uvicorn) sedang berjalan dan coba lagi.'
+                        '<strong>Alasan:</strong><br>Kesalahan koneksi.<br>' .
+                        '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal terhubung ke server penjadwalan.</li></ul><br>' .
+                        '<strong>Rekomendasi:</strong><br>• Pastikan server penjadwalan (Uvicorn) sedang berjalan dan coba lagi.'
                 );
             }
 
@@ -142,7 +147,7 @@ class JadwalController extends Controller
 
             if (isset($hasil['status_solver']) && $hasil['status_solver'] === 'GAGAL') {
                 $pesanError = '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>';
-                
+
                 if (!empty($hasil['pesan'])) {
                     $pesanError .= '<strong>Alasan:</strong><br>' . e($hasil['pesan']);
                 } else {
@@ -190,19 +195,21 @@ class JadwalController extends Controller
                     ->with('success', 'Jadwal berhasil digenerate khusus untuk semester ini tanpa menghapus data semester lain!');
             } catch (\Exception $e) {
                 DB::rollBack();
-                return back()->with('error',
+                return back()->with(
+                    'error',
                     '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                    '<strong>Alasan:</strong><br>Kesalahan database.<br>' .
-                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal menyimpan jadwal yang dibuat ke dalam database.</li></ul><br>' .
-                    '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
+                        '<strong>Alasan:</strong><br>Kesalahan database.<br>' .
+                        '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal menyimpan jadwal yang dibuat ke dalam database.</li></ul><br>' .
+                        '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
                 );
             }
         } catch (\Exception $e) {
-            return back()->with('error',
+            return back()->with(
+                'error',
                 '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                '<strong>Alasan:</strong><br>Kesalahan sistem.<br>' .
-                '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Terjadi kesalahan sistem yang tidak terduga.</li></ul><br>' .
-                '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
+                    '<strong>Alasan:</strong><br>Kesalahan sistem.<br>' .
+                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Terjadi kesalahan sistem yang tidak terduga.</li></ul><br>' .
+                    '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
             );
         }
     }
@@ -254,44 +261,101 @@ class JadwalController extends Controller
             'sesi_mulai_baru' => 'required|integer|min:1|max:8',
         ]);
 
-        $jadwalTarget = Jadwal::findOrFail($request->jadwal_id);
-
-        // Hitung durasi asli blok matkul
-        $durasiAsli = ($jadwalTarget->sesi_selesai - $jadwalTarget->sesi_mulai) + 1;
-
         $hariBaru = $request->hari_baru;
         $sesiMulaiBaru = (int) $request->sesi_mulai_baru;
-        $sesiSelesaiBaru = $sesiMulaiBaru + $durasiAsli - 1;
-
-        // Batasi agar pergeseran tidak melebihi batas maksimum sesi harian (sesi 8)
-        if ($sesiSelesaiBaru > 8) {
-            return redirect()->back()->with('error', "Gagal! Matkul berdurasi {$durasiAsli} sesi, tidak muat jika dimulai dari Sesi {$sesiMulaiBaru}.");
-        }
 
         try {
-            DB::transaction(function () use ($request, $jadwalTarget, $hariBaru, $sesiMulaiBaru, $sesiSelesaiBaru) {
+            DB::transaction(function () use ($request, $hariBaru, $sesiMulaiBaru) {
+
+                // Lock jadwal target agar tidak ada race condition
+                $jadwalTarget = Jadwal::lockForUpdate()->findOrFail($request->jadwal_id);
+
+                // Hitung durasi asli blok matkul
+                $durasiAsli = ($jadwalTarget->sesi_selesai - $jadwalTarget->sesi_mulai) + 1;
+                $sesiSelesaiBaru = $sesiMulaiBaru + $durasiAsli - 1;
+
+                // Batasi agar pergeseran tidak melebihi batas maksimum sesi harian (sesi 8)
+                if ($sesiSelesaiBaru > 8) {
+                    throw new \Exception("Gagal! Matkul berdurasi {$durasiAsli} sesi, tidak muat jika dimulai dari Sesi {$sesiMulaiBaru}.");
+                }
 
                 // TUKAR POSISI (SWAP)
                 if ($request->has('mode_tukar')) {
-                    // Cari jadwal lain yang menempati slot tujuan
-                    $jadwalTabrakan = Jadwal::where('hari', $hariBaru)
-                        ->where('kelas_id', $jadwalTarget->kelas_id)
+                    // Cari jadwal apa saja yang konflik dengan posisi baru (bisa bentrok kelas, dosen, atau ruangan)
+                    $konflik = Jadwal::lockForUpdate()->where('hari', $hariBaru)
                         ->where('id', '!=', $jadwalTarget->id)
                         ->where(function ($q) use ($sesiMulaiBaru, $sesiSelesaiBaru) {
                             $q->where('sesi_mulai', '<=', $sesiSelesaiBaru)
                                 ->where('sesi_selesai', '>=', $sesiMulaiBaru);
-                        })->first();
+                        })
+                        ->where(function ($q) use ($jadwalTarget) {
+                            $q->where('kelas_id', $jadwalTarget->kelas_id)
+                                ->orWhere('dosen_id', $jadwalTarget->dosen_id)
+                                ->orWhere('ruang_id', $jadwalTarget->ruang_id);
+                        })->get();
+
+                    if ($konflik->count() > 1) {
+                        throw new \Exception("Gagal Tukar: Terdapat lebih dari 1 jadwal yang bertabrakan di slot tersebut. Tidak dapat melakukan swap otomatis.");
+                    }
+
+                    $jadwalTabrakan = $konflik->first();
 
                     if ($jadwalTabrakan) {
                         // Simpan posisi lama Jadwal Target untuk barter posisi
-                        $posisiLamaTarget = [
-                            'hari' => $jadwalTarget->hari,
-                            'sesi_mulai' => $jadwalTarget->sesi_mulai,
-                            'sesi_selesai' => $jadwalTarget->sesi_selesai
-                        ];
+                        $hariLama = $jadwalTarget->hari;
+                        $sesiMulaiLama = $jadwalTarget->sesi_mulai;
 
-                        // Pindahkan jadwal yang ditabrak ke posisi lama jadwal target
-                        $jadwalTabrakan->update($posisiLamaTarget);
+                        // Hitung durasi masing-masing agar swap mempertahankan durasi asli
+                        $durasiTabrakan = ($jadwalTabrakan->sesi_selesai - $jadwalTabrakan->sesi_mulai) + 1;
+                        $sesiSelesaiLamaBaru = $sesiMulaiLama + $durasiTabrakan - 1;
+
+                        // Pastikan jadwal tabrakan muat di posisi lama target
+                        if ($sesiSelesaiLamaBaru > 8) {
+                            throw new \Exception("Gagal Tukar: Jadwal yang ditukar berdurasi {$durasiTabrakan} sesi, tidak muat di posisi asal (Sesi {$sesiMulaiLama}).");
+                        }
+
+                        // CEK BENTROK UNTUK JADWAL TARGET DI POSISI BARU (abaikan jadwalTabrakan)
+                        $cekBentrokTarget = Jadwal::where('hari', $hariBaru)
+                            ->whereNotIn('id', [$jadwalTarget->id, $jadwalTabrakan->id])
+                            ->where(function ($q) use ($sesiMulaiBaru, $sesiSelesaiBaru) {
+                                $q->where('sesi_mulai', '<=', $sesiSelesaiBaru)
+                                    ->where('sesi_selesai', '>=', $sesiMulaiBaru);
+                            });
+
+                        if ((clone $cekBentrokTarget)->where('kelas_id', $jadwalTarget->kelas_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Kelas sudah memiliki jadwal matkul lain pada sesi tujuan.");
+                        }
+                        if ((clone $cekBentrokTarget)->where('dosen_id', $jadwalTarget->dosen_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Dosen bersangkutan sedang mengajar di kelas lain pada sesi tujuan.");
+                        }
+                        if ((clone $cekBentrokTarget)->where('ruang_id', $jadwalTarget->ruang_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Ruangan tersebut sedang digunakan untuk perkuliahan lain pada sesi tujuan.");
+                        }
+
+                        // CEK BENTROK UNTUK JADWAL TABRAKAN DI POSISI LAMA TARGET (abaikan jadwalTarget)
+                        $cekBentrokTabrakan = Jadwal::where('hari', $hariLama)
+                            ->whereNotIn('id', [$jadwalTarget->id, $jadwalTabrakan->id])
+                            ->where(function ($q) use ($sesiMulaiLama, $sesiSelesaiLamaBaru) {
+                                $q->where('sesi_mulai', '<=', $sesiSelesaiLamaBaru)
+                                    ->where('sesi_selesai', '>=', $sesiMulaiLama);
+                            });
+
+                        if ((clone $cekBentrokTabrakan)->where('kelas_id', $jadwalTabrakan->kelas_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Kelas jadwal yang ditukar sudah memiliki matkul lain pada sesi asal.");
+                        }
+                        if ((clone $cekBentrokTabrakan)->where('dosen_id', $jadwalTabrakan->dosen_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Dosen jadwal yang ditukar sedang mengajar di kelas lain pada sesi asal.");
+                        }
+                        if ((clone $cekBentrokTabrakan)->where('ruang_id', $jadwalTabrakan->ruang_id)->exists()) {
+                            throw new \Exception("Gagal Tukar: Ruangan jadwal yang ditukar sedang digunakan pada sesi asal.");
+                        }
+
+                        // Pindahkan jadwal yang ditabrak ke posisi lama jadwal target (durasi dipertahankan)
+                        $jadwalTabrakan->update([
+                            'hari' => $hariLama,
+                            'sesi_mulai' => $sesiMulaiLama,
+                            'sesi_selesai' => $sesiSelesaiLamaBaru
+                        ]);
 
                         // Pindahkan jadwal target ke posisi baru
                         $jadwalTarget->update([

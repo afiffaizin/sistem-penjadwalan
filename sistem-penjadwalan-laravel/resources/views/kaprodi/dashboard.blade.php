@@ -4,23 +4,44 @@
     <div class="container mx-auto max-w-7xl">
 
         <div
-            class="bg-gradient-to-r from-amber-700 to-amber-900 text-white p-8 rounded-2xl shadow-md mb-8 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+            class="bg-gradient-to-r from-amber-700 to-amber-900 text-white p-8 rounded-2xl shadow-md mb-8 relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] rounded-2xl overflow-hidden pointer-events-none">
             </div>
             <div class="relative z-10">
                 <h1 class="text-3xl font-black mb-1">Selamat Datang, Kaprodi {{ $prodi->nama ?? 'Program Studi' }}</h1>
                 <p class="text-amber-200 text-sm font-medium">Panel Pemantauan Jadwal Kuliah Internal Program Studi.</p>
             </div>
-            <div class="relative z-10">
-                <form action="{{ route('kaprodi.dashboard') }}" method="GET" class="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/30">
-                    <label for="tahun_ajar_id" class="text-sm font-bold text-amber-50">Tahun Ajaran:</label>
-                    <select name="tahun_ajar_id" id="tahun_ajar_id" onchange="this.form.submit()" class="bg-transparent text-sm font-bold text-white border-none focus:ring-0 cursor-pointer [&>option]:text-gray-900">
-                        @foreach($tahunAjars as $ta)
-                            <option value="{{ $ta->id }}" {{ $selectedTahunAjarId == $ta->id ? 'selected' : '' }}>
-                                {{ $ta->tahun }} - {{ $ta->semester }}
-                            </option>
-                        @endforeach
-                    </select>
+            <div class="relative z-50" id="custom-dropdown-container">
+                <form action="{{ route('kaprodi.dashboard') }}" method="GET" id="tahun-ajar-form">
+                    <input type="hidden" name="tahun_ajar_id" id="tahun_ajar_id_input" value="{{ $selectedTahunAjarId }}">
+                    
+                    <button type="button" onclick="toggleDropdown()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm px-5 py-2.5 rounded-xl border border-white/30 transition shadow-sm w-full md:w-auto">
+                        <span class="text-sm font-bold text-amber-50">Tahun Ajaran:</span>
+                        <span class="text-sm font-bold text-white ml-2" id="selected-text">
+                            @php
+                                $selectedTa = $tahunAjars->firstWhere('id', $selectedTahunAjarId);
+                            @endphp
+                            {{ $selectedTa ? $selectedTa->tahun . ' - ' . ucfirst($selectedTa->semester) : 'Pilih...' }}
+                        </span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white ml-3 transition-transform duration-200" id="dropdown-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+
+                    <div id="custom-dropdown-menu" class="absolute right-0 md:left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-100 hidden z-50 overflow-hidden transform origin-top transition-all">
+                        <div class="py-2 flex flex-col">
+                            @foreach($tahunAjars as $ta)
+                                <button type="button" onclick="selectTahunAjar('{{ $ta->id }}')" class="w-full text-left px-5 py-3 text-sm font-bold transition flex justify-between items-center {{ $selectedTahunAjarId == $ta->id ? 'bg-orange-50 text-orange-700' : 'text-gray-800 hover:bg-gray-50' }}">
+                                    <span>{{ $ta->tahun }} - {{ ucfirst($ta->semester) }}</span>
+                                    @if($selectedTahunAjarId == $ta->id)
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    @endif
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
@@ -163,6 +184,36 @@
                     }
                 }
             });
+        });
+
+        // Custom Dropdown JS
+        function toggleDropdown() {
+            const menu = document.getElementById('custom-dropdown-menu');
+            const icon = document.getElementById('dropdown-icon');
+            menu.classList.toggle('hidden');
+            if (!menu.classList.contains('hidden')) {
+                icon.classList.add('rotate-180');
+            } else {
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        function selectTahunAjar(id) {
+            document.getElementById('tahun_ajar_id_input').value = id;
+            document.getElementById('tahun-ajar-form').submit();
+        }
+
+        document.addEventListener('click', function(event) {
+            const container = document.getElementById('custom-dropdown-container');
+            const menu = document.getElementById('custom-dropdown-menu');
+            const icon = document.getElementById('dropdown-icon');
+            
+            if (container && !container.contains(event.target)) {
+                if (!menu.classList.contains('hidden')) {
+                    menu.classList.add('hidden');
+                    icon.classList.remove('rotate-180');
+                }
+            }
         });
     </script>
 @endsection

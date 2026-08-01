@@ -59,7 +59,7 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse($ruangList as $index => $r)
                         <tr class="hover:bg-amber-50/50 transition">
-                            <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $index + 1 }}</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $ruangList->firstItem() + $index }}</td>
                             <td class="px-6 py-4 font-bold text-gray-800">
                                 {{ $r->nama }} <br>
                                 <span class="text-xs font-semibold px-2 py-0.5 rounded {{ strtolower($r->kategori) == 'teori' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700' }}">
@@ -85,6 +85,9 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-100">
+            {{ $ruangList->withQueryString()->links() }}
         </div>
     </div>
 </div>

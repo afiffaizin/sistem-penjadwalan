@@ -51,17 +51,25 @@
                     <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
                         <th class="px-6 py-4 font-bold">Mata Kuliah</th>
                         <th class="px-6 py-4 font-bold text-center">SKS (T/P/Total)</th>
+                        <th class="px-6 py-4 font-bold text-center">Group</th>
                         <th class="px-6 py-4 font-bold text-center">Prodi</th>
                         <th class="px-6 py-4 font-bold">Tahun Ajar</th>
                         <th class="px-6 py-4 font-bold text-center w-32">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    @forelse($matkulList as $m)
+                    @forelse($matkulList as $index => $m)
                         <tr class="hover:bg-amber-50/50 transition">
-                            <td class="px-6 py-4 font-bold text-gray-800">{{ $m->nama }}</td>
+                            <td class="px-6 py-4 font-bold text-gray-800">{{ $matkulList->firstItem() + $index }}. {{ $m->nama }}</td>
                             <td class="px-6 py-4 text-center font-medium text-gray-700">
                                 {{ $m->sks_teori }} / {{ $m->sks_praktikum }} / <strong class="text-amber-600">{{ $m->sks_total }}</strong>
+                            </td>
+                            <td class="px-6 py-4 text-center font-medium text-gray-600 text-sm">
+                                @if($m->kode_group)
+                                    <span class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md border border-blue-100 text-xs font-semibold">{{ $m->kode_group }}</span>
+                                @else
+                                    -
+                                @endif
                             </td>
                             <td class="px-6 py-4 text-sm text-center text-gray-600">
                                 <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100 text-xs font-semibold">
@@ -86,6 +94,9 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-100">
+            {{ $matkulList->withQueryString()->links() }}
         </div>
     </div>
 </div>

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Dosen extends Model
 {
-    protected $fillable = ['kode_dosen', 'nama', 'nidn', 'prodi_id', 'nip', 'tahun_ajar_id'];
+    protected $fillable = ['kode_dosen', 'nama', 'nip', 'tahun_ajar_id'];
 
     public function prodis()
     {

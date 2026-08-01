@@ -59,7 +59,7 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse($kelasList as $index => $k)
                         <tr class="hover:bg-amber-50/50 transition">
-                            <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $index + 1 }}</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $kelasList->firstItem() + $index }}</td>
                             <td class="px-6 py-4 font-bold text-gray-800">{{ $k->nama }}</td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 <span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100 text-xs font-semibold">
@@ -94,6 +94,9 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-100">
+            {{ $kelasList->withQueryString()->links() }}
         </div>
     </div>
 </div>
