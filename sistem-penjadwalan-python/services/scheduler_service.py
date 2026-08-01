@@ -442,7 +442,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = 700.0
     solver.parameters.max_memory_in_mb = 2048
-    solver.parameters.num_workers = 2
+    solver.parameters.num_workers = 4
 
     print(f"   Model: {n} tasks, {model.Proto().variables.__len__()} vars")
     status = solver.Solve(model)

@@ -7,12 +7,13 @@
         .dataTables_wrapper .dataTables_filter input { border: 1px solid #e2e8f0; border-radius: 0.375rem; padding: 0.5rem; outline: none; }
         .dataTables_wrapper .dataTables_filter input:focus { border-color: #f59e0b; box-shadow: 0 0 0 1px #f59e0b; }
         table.dataTable { border-collapse: collapse !important; }
+        @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+        .animate-pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
     </style>
 
    <div class="max-w-7xl mx-auto">
         <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border-l-8 border-amber-500">
-            <form id="formGenerate" action="{{ route('jadwal.generate') }}" method="POST" class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                @csrf
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 class="text-2xl md:text-3xl font-extrabold text-gray-800 tracking-tight">Generate Jadwal Otomatis</h1>
                     
@@ -37,16 +38,26 @@
                 </div>
                 
                 <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto self-end md:self-center">
-                    <button type="button" onclick="mulaiGenerate()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-amber-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                    <button type="button" id="btnGenerate" onclick="mulaiGenerate()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-amber-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-wand-magic-sparkles text-xl"></i> Mulai Auto-Generate
                     </button>
                     @if(isset($jadwalList) && count($jadwalList) > 0)
-                        <button type="button" onclick="hapusJadwal()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-red-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <button type="button" id="btnHapus" onclick="hapusJadwal()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-red-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
                             <i class="fa-solid fa-trash text-lg"></i> Hapus Jadwal
                         </button>
                     @endif
                 </div>
-            </form>
+            </div>
+
+            {{-- Status indicator --}}
+            <div id="jobStatusBar" class="hidden mt-4 p-4 rounded-lg border">
+                <div class="flex items-center gap-3">
+                    <div id="statusDot" class="w-3 h-3 rounded-full animate-pulse-dot"></div>
+                    <span id="statusText" class="text-sm font-semibold"></span>
+                    <span id="statusElapsed" class="text-xs text-gray-400 ml-auto"></span>
+                </div>
+                <div id="statusError" class="hidden mt-2 text-sm text-red-600 whitespace-pre-line"></div>
+            </div>
 
             {{-- Form tersembunyi khusus untuk aksi DELETE --}}
             <form id="formHapusJadwal" action="{{ route('jadwal.delete') }}" method="POST" class="hidden">
@@ -126,17 +137,136 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        const CSRF_TOKEN = '{{ csrf_token() }}';
+        const URL_GENERATE = '{{ route("jadwal.generate") }}';
+        const URL_STATUS = '{{ route("jadwal.generate.status") }}';
+        const URL_INDEX = '{{ route("jadwal.index") }}';
+
+        let pollTimer = null;
+        let jobStartTime = null;
+        let elapsedTimer = null;
+
         $(document).ready(function() {
-            // DataTables hanya akan diinisialisasi jika tabelnya ada
             if ($('#tableJadwal').length) {
                 $('#tableJadwal').DataTable({
                     pageLength: 25,
                     language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json' }
                 });
             }
+
+            // Check if there's an active job on page load
+            @if($activeJob && $activeJob->isActive())
+                jobStartTime = new Date('{{ $activeJob->started_at ?? $activeJob->created_at }}');
+                showStatus('{{ $activeJob->status }}');
+                setButtonsDisabled(true);
+                startPolling();
+            @endif
         });
 
-        // FUNGSI POPUP & LOADING
+        function getTahunAjarId() {
+            return document.getElementById('tahun_ajar_id').value;
+        }
+
+        function setButtonsDisabled(disabled) {
+            const btnGen = document.getElementById('btnGenerate');
+            const btnDel = document.getElementById('btnHapus');
+            if (btnGen) {
+                btnGen.disabled = disabled;
+                btnGen.classList.toggle('opacity-50', disabled);
+                btnGen.classList.toggle('cursor-not-allowed', disabled);
+                btnGen.classList.toggle('hover:bg-amber-600', !disabled);
+                btnGen.classList.toggle('hover:-translate-y-1', !disabled);
+            }
+            if (btnDel) {
+                btnDel.disabled = disabled;
+                btnDel.classList.toggle('opacity-50', disabled);
+                btnDel.classList.toggle('cursor-not-allowed', disabled);
+            }
+        }
+
+        function showStatus(status, errorMsg) {
+            const bar = document.getElementById('jobStatusBar');
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const errDiv = document.getElementById('statusError');
+
+            bar.classList.remove('hidden', 'bg-amber-50', 'border-amber-200', 'bg-green-50', 'border-green-200', 'bg-red-50', 'border-red-200', 'bg-blue-50', 'border-blue-200');
+            dot.classList.remove('bg-amber-500', 'bg-green-500', 'bg-red-500', 'bg-blue-500');
+            errDiv.classList.add('hidden');
+
+            if (status === 'pending') {
+                bar.classList.add('bg-blue-50', 'border-blue-200');
+                dot.classList.add('bg-blue-500');
+                text.textContent = 'Menunggu antrian... Job akan segera diproses oleh worker.';
+            } else if (status === 'processing') {
+                bar.classList.add('bg-amber-50', 'border-amber-200');
+                dot.classList.add('bg-amber-500');
+                text.textContent = 'OR-Tools sedang menyusun jadwal... Anda dapat menutup halaman ini, proses tetap berjalan.';
+            } else if (status === 'completed') {
+                bar.classList.add('bg-green-50', 'border-green-200');
+                dot.classList.add('bg-green-500');
+                dot.classList.remove('animate-pulse-dot');
+                text.textContent = 'Jadwal berhasil digenerate! Memuat ulang halaman...';
+            } else if (status === 'failed') {
+                bar.classList.add('bg-red-50', 'border-red-200');
+                dot.classList.add('bg-red-500');
+                dot.classList.remove('animate-pulse-dot');
+                text.textContent = 'Generate jadwal gagal.';
+                if (errorMsg) {
+                    errDiv.textContent = errorMsg;
+                    errDiv.classList.remove('hidden');
+                }
+            }
+        }
+
+        function updateElapsed() {
+            if (!jobStartTime) return;
+            const el = document.getElementById('statusElapsed');
+            const diff = Math.floor((Date.now() - jobStartTime.getTime()) / 1000);
+            const m = Math.floor(diff / 60);
+            const s = diff % 60;
+            el.textContent = m > 0 ? `${m}m ${s}s` : `${s}s`;
+        }
+
+        function startPolling() {
+            stopPolling();
+            elapsedTimer = setInterval(updateElapsed, 1000);
+            updateElapsed();
+            pollTimer = setInterval(pollStatus, 3000);
+        }
+
+        function stopPolling() {
+            if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+            if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+        }
+
+        function pollStatus() {
+            $.get(URL_STATUS, { tahun_ajar_id: getTahunAjarId() })
+                .done(function(data) {
+                    if (data.job_status === 'completed') {
+                        stopPolling();
+                        showStatus('completed');
+                        setTimeout(function() {
+                            window.location.href = URL_INDEX + '?tahun_ajar_id=' + getTahunAjarId();
+                        }, 1500);
+                    } else if (data.job_status === 'failed') {
+                        stopPolling();
+                        showStatus('failed', data.error_message);
+                        setButtonsDisabled(false);
+                    } else if (data.job_status === 'processing') {
+                        if (data.started_at && !jobStartTime) {
+                            jobStartTime = new Date(data.started_at);
+                        }
+                        showStatus('processing');
+                    } else if (data.job_status === 'pending') {
+                        showStatus('pending');
+                    }
+                })
+                .fail(function() {
+                    // Network error — keep polling
+                });
+        }
+
         function mulaiGenerate() {
             Swal.fire({
                 title: 'Mulai Auto-Generate?',
@@ -150,28 +280,42 @@
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
-                    
-                    // Munculkan Animasi Loading
-                    Swal.fire({
-                        title: 'OR-tools Sedang Bekerja...',
-                        html: '<span class="text-sm text-gray-500">Sistem sedang mencari kombinasi jadwal terbaik tanpa bentrok.<br><b class="text-red-500">Mohon jangan tutup atau refresh halaman ini!</b></span>',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
+                    setButtonsDisabled(true);
+
+                    $.ajax({
+                        url: URL_GENERATE,
+                        method: 'POST',
+                        data: {
+                            _token: CSRF_TOKEN,
+                            tahun_ajar_id: getTahunAjarId()
+                        },
+                        dataType: 'json',
+                        success: function(data) {
+                            if (data.status === 'ok') {
+                                jobStartTime = new Date();
+                                showStatus('pending');
+                                startPolling();
+                            } else {
+                                Swal.fire('Gagal', data.message || 'Terjadi kesalahan.', 'error');
+                                setButtonsDisabled(false);
+                            }
+                        },
+                        error: function(xhr) {
+                            let msg = 'Terjadi kesalahan.';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                msg = xhr.responseJSON.message;
+                            }
+                            Swal.fire('Gagal', msg, 'error');
+                            setButtonsDisabled(false);
                         }
                     });
-
-                    // Submit form
-                    document.getElementById('formGenerate').submit();
                 }
             });
         }
 
         function gantiTahunAjar(id) {
-            // Mengarahkan kembali ke halaman index dengan query string parameter tahun_ajar_id
-            window.location.href = "{{ route('jadwal.index') }}?tahun_ajar_id=" + id;
+            stopPolling();
+            window.location.href = URL_INDEX + '?tahun_ajar_id=' + id;
         }
 
         function hapusJadwal() {
@@ -190,7 +334,6 @@
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Sinkronisasi ID tahun ajar ke form hapus
                     document.getElementById('hapus_tahun_ajar_id').value = select.value;
 
                     Swal.fire({

@@ -3,20 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Exports\JadwalExport;
-use App\Models\Dosen;
-use App\Models\DosenMatkul;
-use App\Models\DosenUnavailableDay;
+use App\Jobs\GenerateJadwalJob;
 use App\Models\Jadwal;
-use App\Models\Kelas;
-use App\Models\MataKuliah;
-use App\Models\ProgramStudi;
-use App\Models\Ruang;
+use App\Models\JadwalGenerateJob;
 use App\Models\TahunAjar;
 use App\Services\JadwalViewService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Maatwebsite\Excel\Facades\Excel;
 
 class JadwalController extends Controller
@@ -34,184 +28,81 @@ class JadwalController extends Controller
         }
 
         $jadwalList = [];
+        $activeJob = null;
         if ($selectedTahunAjarId) {
             $jadwalList = Jadwal::with(['dosen', 'mata_kuliah', 'kelas', 'ruang'])
                 ->where('tahun_ajar_id', $selectedTahunAjarId)
                 ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat')")
                 ->orderBy('sesi_mulai')
                 ->get();
+
+            $activeJob = JadwalGenerateJob::where('tahun_ajar_id', $selectedTahunAjarId)
+                ->latest()
+                ->first();
         }
 
         return view('generate-jadwal', [
             'daftarTahunAjar' => $daftarTahunAjar,
             'tahunAjarAktif' => $tahunAjarAktifLabel,
-            'jadwalList' => $jadwalList
+            'jadwalList' => $jadwalList,
+            'activeJob' => $activeJob,
         ]);
     }
 
     public function generate(Request $request)
     {
-        // 1. Ambil ID Tahun Ajar yang dipilih dari dropdown form
         $targetTahunAjarId = $request->input('tahun_ajar_id');
 
         if (!$targetTahunAjarId) {
-            return back()->with('error', 'Tahun Ajar tidak valid.');
+            return response()->json(['status' => 'error', 'message' => 'Tahun Ajar tidak valid.'], 422);
         }
 
-        // 2. Tarik Data Dosen
-        $pengampu = DosenMatkul::with(['mata_kuliah', 'dosen', 'kelas'])
-            ->where('tahun_ajar_id', $targetTahunAjarId)
-            ->get()
-            ->reject(function ($item) {
-                if (!$item->mata_kuliah) {
-                    return true;
-                }
-                $namaMk = strtolower($item->mata_kuliah->nama);
-                return str_contains($namaMk, 'proyek keamanan siber') ||
-                    str_contains($namaMk, 'magang') ||
-                    str_contains($namaMk, 'tugas akhir');
-            })
-            ->map(function ($item) {
-                $sksTeori = $item->mata_kuliah->sks_teori ?? 0;
-                $sksPraktikum = $item->mata_kuliah->sks_praktikum ?? 0;
-
-                return [
-                    'id' => $item->id,
-                    'dosen_id' => $item->dosen_id,
-                    'dosen_nama' => $item->dosen->nama ?? '-',
-                    'mata_kuliah_id' => $item->mata_kuliah_id,
-                    'mata_kuliah_nama' => $item->mata_kuliah->nama ?? '-',
-                    'group_matkul' => $item->mata_kuliah->kode_group ?? '-',
-                    'kelas_id' => $item->kelas_id,
-                    'kelas_nama' => $item->kelas->nama ?? '-',
-                    'tahun_ajar_id' => $item->tahun_ajar_id,
-                    'prodi_id' => $item->mata_kuliah->prodi_id ?? null,
-                    'jam_teori' => $sksTeori * 1,
-                    'jam_praktikum' => $sksPraktikum * 2
-                ];
-            })
-            ->values()
-            ->toArray();
-
-        // 3. Tarik Data Ruangan
-        $ruangan = Ruang::where('tahun_ajar_id', $targetTahunAjarId)->get()->map(function ($r) {
-            return [
-                'id' => $r->id,
-                'nama' => $r->nama,
-                'kategori' => strtolower($r->kategori),
-                'prodi_id' => $r->prodi_id,
-            ];
-        })->toArray();
-
-        $unavailableDays = DosenUnavailableDay::where('tahun_ajar_id', $targetTahunAjarId)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'dosen_id' => $item->dosen_id,
-                    'hari' => $item->hari,
-                ];
-            })
-            ->values()
-            ->toArray();
-
-        if (empty($pengampu) || empty($ruangan)) {
-            return back()->with(
-                'error',
-                '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                    '<strong>Alasan:</strong><br>Data tidak lengkap.<br>' .
-                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Belum ada data ploting dosen atau data ruangan pada semester ini.</li></ul><br>' .
-                    '<strong>Rekomendasi:</strong><br>• Silakan lengkapi data ploting dosen mengajar dan data ruangan terlebih dahulu, lalu coba kembali.'
-            );
+        // Prevent duplicate concurrent jobs
+        if (JadwalGenerateJob::hasActiveJob($targetTahunAjarId)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Proses generate jadwal untuk tahun ajar ini sedang berjalan. Silakan tunggu hingga selesai.',
+            ], 409);
         }
 
-        try {
-            // 4. Kirim data ke Python
-            $response = Http::timeout(800)
-                ->post(config('services.python.url') . '/api/generate-jadwal', [
-                    'pengampu' => $pengampu,
-                    'ruangan' => $ruangan,
-                    'unavailable_days' => $unavailableDays,
-                ]);
+        // Create tracking record
+        $tracker = JadwalGenerateJob::create([
+            'tahun_ajar_id' => $targetTahunAjarId,
+            'status' => 'pending',
+        ]);
 
-            if ($response->failed()) {
-                return back()->with(
-                    'error',
-                    '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                        '<strong>Alasan:</strong><br>Kesalahan koneksi.<br>' .
-                        '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal terhubung ke server penjadwalan.</li></ul><br>' .
-                        '<strong>Rekomendasi:</strong><br>• Pastikan server penjadwalan (Uvicorn) sedang berjalan dan coba lagi.'
-                );
-            }
+        // Dispatch background job
+        GenerateJadwalJob::dispatch($targetTahunAjarId, $tracker->id);
 
-            $hasil = $response->json();
+        return response()->json([
+            'status' => 'ok',
+            'message' => 'Proses generate jadwal dimulai.',
+            'job_id' => $tracker->id,
+        ]);
+    }
 
-            if (isset($hasil['status_solver']) && $hasil['status_solver'] === 'GAGAL') {
-                $pesanError = '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>';
+    public function generateStatus(Request $request)
+    {
+        $tahunAjarId = $request->input('tahun_ajar_id');
 
-                if (!empty($hasil['pesan'])) {
-                    $pesanError .= '<strong>Alasan:</strong><br>' . e($hasil['pesan']);
-                } else {
-                    $pesanError .= '<strong>Alasan:</strong><br>Terjadi kendala pada proses penjadwalan.';
-                }
-
-                if (!empty($hasil['violations'])) {
-                    $pesanError .= '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600">';
-                    foreach ($hasil['violations'] as $v) {
-                        // Parse **bold** syntax to <strong> HTML tag securely
-                        $formatted_v = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', e($v));
-                        $pesanError .= '<li>' . $formatted_v . '</li>';
-                    }
-                    $pesanError .= '</ul>';
-                }
-
-                if (!empty($hasil['recommendation'])) {
-                    $pesanError .= '<br><br><strong>Rekomendasi:</strong><br>• ' . e($hasil['recommendation']);
-                }
-
-                return back()->with('error', $pesanError);
-            }
-
-            // 5. Simpan ke Database
-            DB::beginTransaction();
-            try {
-                Jadwal::where('tahun_ajar_id', $targetTahunAjarId)->delete();
-
-                foreach ($hasil['data'] as $j) {
-                    Jadwal::create([
-                        'tahun_ajar_id' => $targetTahunAjarId,
-                        'dosen_id' => $j['dosen_id'],
-                        'mata_kuliah_id' => $j['mata_kuliah_id'],
-                        'kelas_id' => $j['kelas_id'],
-                        'ruang_id' => $j['ruang_id'],
-                        'hari' => $j['hari'],
-                        'sesi_mulai' => $j['sesi_mulai'],
-                        'sesi_selesai' => $j['sesi_selesai'],
-                    ]);
-                }
-
-                DB::commit();
-
-                return redirect()->route('jadwal.index', ['tahun_ajar_id' => $targetTahunAjarId])
-                    ->with('success', 'Jadwal berhasil digenerate khusus untuk semester ini tanpa menghapus data semester lain!');
-            } catch (\Exception $e) {
-                DB::rollBack();
-                return back()->with(
-                    'error',
-                    '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                        '<strong>Alasan:</strong><br>Kesalahan database.<br>' .
-                        '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal menyimpan jadwal yang dibuat ke dalam database.</li></ul><br>' .
-                        '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
-                );
-            }
-        } catch (\Exception $e) {
-            return back()->with(
-                'error',
-                '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                    '<strong>Alasan:</strong><br>Kesalahan sistem.<br>' .
-                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Terjadi kesalahan sistem yang tidak terduga.</li></ul><br>' .
-                    '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
-            );
+        if (!$tahunAjarId) {
+            return response()->json(['status' => 'error', 'message' => 'Tahun Ajar tidak valid.'], 422);
         }
+
+        $job = JadwalGenerateJob::latestForTahunAjar($tahunAjarId);
+
+        if (!$job) {
+            return response()->json(['job_status' => 'none']);
+        }
+
+        return response()->json([
+            'job_id' => $job->id,
+            'job_status' => $job->status,
+            'error_message' => $job->error_message,
+            'started_at' => $job->started_at?->toDateTimeString(),
+            'completed_at' => $job->completed_at?->toDateTimeString(),
+            'created_at' => $job->created_at?->toDateTimeString(),
+        ]);
     }
 
     public function deleteByTahunAjar(Request $request)
@@ -290,8 +181,8 @@ class JadwalController extends Controller
                         })
                         ->where(function ($q) use ($jadwalTarget) {
                             $q->where('kelas_id', $jadwalTarget->kelas_id)
-                                ->orWhere('dosen_id', $jadwalTarget->dosen_id)
-                                ->orWhere('ruang_id', $jadwalTarget->ruang_id);
+                              ->orWhere('dosen_id', $jadwalTarget->dosen_id)
+                              ->orWhere('ruang_id', $jadwalTarget->ruang_id);
                         })->get();
 
                     if ($konflik->count() > 1) {
