@@ -60,7 +60,7 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse($dosens as $index => $d)
                         <tr class="hover:bg-amber-50/50 transition">
-                            <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $index + 1 }}</td>
+                            <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $dosens->firstItem() + $index }}</td>
                             <td class="px-6 py-4 font-bold text-amber-600">{{ $d->kode_dosen }}</td>
                             <td class="px-6 py-4 font-semibold text-gray-800">{{ $d->nama }}</td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ $d->nip ?? '-' }}</td>
@@ -92,6 +92,9 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-100">
+            {{ $dosens->withQueryString()->links() }}
         </div>
     </div>
 </div>

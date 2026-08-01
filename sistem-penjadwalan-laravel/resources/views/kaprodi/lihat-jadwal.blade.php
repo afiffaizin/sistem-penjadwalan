@@ -24,7 +24,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tahun Ajaran</label>
-                        <select name="tahun_ajar_id"
+                        <select name="tahun_ajar_id" onchange="document.getElementById('kelas_id_filter').value=''; this.form.submit()"
                             class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
                             <option value="">-- Pilih Tahun Ajaran --</option>
                             @foreach ($tahunAjars as $ta)
@@ -47,7 +47,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Kelas</label>
-                        <select name="kelas_id"
+                        <select name="kelas_id" id="kelas_id_filter"
                             class="select2-filter w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white">
                             <option value="">-- Semua Kelas --</option>
                             @foreach ($kelas as $k)

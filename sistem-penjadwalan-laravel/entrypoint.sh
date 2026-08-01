@@ -12,6 +12,9 @@ mkdir -p storage/app/public \
          storage/framework/views \
          storage/logs
 
+#  0.1 Ensure any stale Vite hot reload file is removed in container
+rm -f public/hot
+
 #  1. Ensure .env exists 
 if [ ! -f .env ]; then
     if [ -f .env.docker ]; then

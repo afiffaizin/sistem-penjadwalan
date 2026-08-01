@@ -59,17 +59,20 @@ def cleanse_ploting(xls):
                 current_mk = nama_mk_cell.strip()
 
             # 4. Ambil Kelas, Prodi
-            kelas = str(row.get("Kelas", ""))
+            kelas_raw = str(row.get("Kelas", ""))
+            # Normalisasi: Jadikan huruf besar, hapus spasi berlebih (tetap pertahankan tanda strip jika ada)
+            kelas_bersih = " ".join(kelas_raw.upper().split())
+
             prodi = str(row.get("Prodi", ""))
 
             # Dosen harus sudah terdeteksi dan MK harus sudah terdeteksi
-            if current_dosen and current_mk and kelas.lower() != 'nan' and kelas.strip() != "":
+            if current_dosen and current_mk and kelas_raw.lower() != 'nan' and kelas_raw.strip() != "":
                 all_records.append({
                     "nip": current_nip if current_nip else "", 
                     "kode_dosen": current_kode_dosen if current_kode_dosen else "",
                     "nama_dosen": current_dosen,
                     "nama_mk": current_mk,
-                    "kelas": kelas.strip(),
+                    "kelas": kelas_bersih,
                     "prodi": prodi.strip() if prodi.lower() != 'nan' else ""
                 })
 
@@ -90,7 +93,9 @@ def cleanse_matkul_sks(xls):
         for i in range(len(df)):
             nama_mk = df.iloc[i, 2]   
             sks_teori = df.iloc[i, 3] 
-            sks_prak = df.iloc[i, 4]  
+            sks_prak = df.iloc[i, 4]
+            # Ambil kolom ke-6 sebagai kode_group jika ada
+            kode_group = df.iloc[i, 5] if len(df.columns) > 5 else ""
 
             if not isinstance(nama_mk, str) or nama_mk.strip() == "":
                 continue
@@ -106,7 +111,8 @@ def cleanse_matkul_sks(xls):
                 "sks_teori": sks_teori,
                 "sks_praktikum": sks_prak,
                 "sks_total": sks_teori + sks_prak,
-                "prodi": str(sheet_name).strip()
+                "prodi": str(sheet_name).strip(),
+                "kode_group": str(kode_group).strip() if pd.notna(kode_group) else ""
             })
 
     if not all_records:
@@ -145,6 +151,7 @@ def merge_matkul_ploting(ploting_df, matkul_df):
             "sks_praktikum",
             "kelas",
             "prodi",
+            "kode_group"
         ]
     ]
 
@@ -156,7 +163,22 @@ def merge_matkul_ploting(ploting_df, matkul_df):
 
 # TAHAP 4: CLEANSING RUANGAN (SUDAH DILENGKAPI FIND_COL)
 def cleanse_ruangan(xls_ruang):
-    df_ruang = pd.read_excel(xls_ruang, sheet_name="ruang")
+    # Cari sheet "ruang" secara case-insensitive
+    target_sheet = None
+    for name in xls_ruang.sheet_names:
+        if name.strip().lower() == "ruang":
+            target_sheet = name
+            break
+
+    if target_sheet is None:
+        available = ", ".join(xls_ruang.sheet_names) if xls_ruang.sheet_names else "(kosong)"
+        raise ValueError(
+            f"Sheet 'ruang' tidak ditemukan pada file Excel ruangan. "
+            f"Sheet yang tersedia: {available}. "
+            f"Pastikan file memiliki sheet bernama 'ruang'."
+        )
+
+    df_ruang = pd.read_excel(xls_ruang, sheet_name=target_sheet)
     
     # Deteksi kolom secara cerdas menggunakan helper find_col
     col_ruang = find_col(df_ruang, ["nama_ruang", "nama ruang", "ruang", "kode"])

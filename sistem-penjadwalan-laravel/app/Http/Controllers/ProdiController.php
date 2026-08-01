@@ -20,22 +20,18 @@ class ProdiController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi disesuaikan dengan struktur tabel
         $request->validate([
             'kode' => 'required|string|max:50|unique:program_studis,kode',
             'nama' => 'required|string|max:255',
-            'jenjang' => 'required|string|max:50',
         ], [
             'kode.required' => 'Kode prodi wajib diisi.',
             'kode.unique' => 'Kode prodi sudah terdaftar.',
             'nama.required' => 'Nama prodi wajib diisi.',
-            'jenjang.required' => 'Jenjang wajib dipilih.'
         ]);
 
         ProgramStudi::create([
             'kode' => $request->kode,
             'nama' => $request->nama,
-            'jenjang' => $request->jenjang,
         ]);
 
         return redirect()->route('prodi.index')->with('success', 'Data Prodi berhasil ditambahkan!');
@@ -66,6 +62,11 @@ class ProdiController extends Controller
     public function destroy($id)
     {
         $prodi = ProgramStudi::findOrFail($id);
+
+        if ($prodi->dosens()->exists() || $prodi->mata_kuliahs()->exists() || $prodi->ruangs()->exists()) {
+            return redirect()->route('prodi.index')->with('error', 'Gagal menghapus: Prodi ini masih memiliki data dosen, mata kuliah, atau ruangan terkait.');
+        }
+
         $prodi->delete();
 
         return redirect()->route('prodi.index')->with('success', 'Data Prodi berhasil dihapus!');

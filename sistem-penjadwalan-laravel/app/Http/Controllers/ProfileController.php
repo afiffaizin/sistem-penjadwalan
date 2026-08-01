@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,6 +48,11 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Cegah penghapusan jika user adalah sekretaris terakhir
+        if ($user->role === 'sekretaris' && User::where('role', 'sekretaris')->count() <= 1) {
+            return back()->with('error', 'Tidak dapat menghapus akun. Anda adalah satu-satunya Sekretaris Jurusan di sistem.');
+        }
 
         Auth::logout();
 

@@ -4,7 +4,7 @@
 <div class="container mx-auto max-w-7xl">
     <div class="bg-gradient-to-r from-amber-700 to-amber-900 text-white p-8 rounded-2xl shadow-md mb-8">
         <h1 class="text-3xl font-black mb-1">Pilih Hari Tidak Bisa Mengajar</h1>
-        <p class="text-amber-200 text-sm font-medium">Atur request hari tidak bisa mengajar untuk dosen di Prodi {{ $prodi->nama }}.</p>
+        <p class="text-amber-200 text-sm font-medium">Atur request hari tidak bisa mengajar untuk dosen di Prodi {{ $prodi->nama }}. Perubahan pada dosen yang mengajar di beberapa prodi akan berlaku secara global.</p>
     </div>
 
     @if(session('success'))

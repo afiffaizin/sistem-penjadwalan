@@ -19,7 +19,7 @@ class MataKuliahController extends Controller
             $query->where('tahun_ajar_id', $request->tahun_ajar_id);
         }
 
-        $matkulList = $query->get();
+        $matkulList = $query->paginate(10);
 
         return view('master-data.matkul.index', compact('matkulList', 'tahunAjars'));
     }
@@ -37,10 +37,11 @@ class MataKuliahController extends Controller
             'sks_teori'     => 'required|numeric',
             'sks_praktikum' => 'required|numeric',
             'sks_total'     => 'required|numeric',
+            'kode_group'    => 'nullable|string',
             'prodi_id'      => 'required|exists:program_studis,id'
         ]);
 
-        MataKuliah::create($request->all());
+        MataKuliah::create($request->only(['nama', 'sks_teori', 'sks_praktikum', 'sks_total', 'kode_group', 'prodi_id', 'tahun_ajar_id']));
         return redirect()->route('matkul.index')->with('success', 'Data Mata Kuliah berhasil ditambahkan.');
     }
 
@@ -57,15 +58,20 @@ class MataKuliahController extends Controller
             'sks_teori'     => 'required|numeric',
             'sks_praktikum' => 'required|numeric',
             'sks_total'     => 'required|numeric',
+            'kode_group'    => 'nullable|string',
             'prodi_id'      => 'required|exists:program_studis,id'
         ]);
 
-        $matkul->update($request->all());
+        $matkul->update($request->only(['nama', 'sks_teori', 'sks_praktikum', 'sks_total', 'kode_group', 'prodi_id', 'tahun_ajar_id']));
         return redirect()->route('matkul.index')->with('success', 'Data Mata Kuliah berhasil diperbarui.');
     }
 
     public function destroy(MataKuliah $matkul)
     {
+        if (\App\Models\DosenMatkul::where('mata_kuliah_id', $matkul->id)->exists() || \App\Models\Jadwal::where('mata_kuliah_id', $matkul->id)->exists()) {
+            return back()->with('error', 'Gagal menghapus: Mata kuliah ini masih memiliki data jadwal atau ploting terkait.');
+        }
+
         $matkul->delete();
         return back()->with('success', 'Data Mata Kuliah berhasil dihapus.');
     }
