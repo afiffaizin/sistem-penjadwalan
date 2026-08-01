@@ -29,11 +29,11 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8000"
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 3G
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "3"
+    #       memory: 4G
     networks:
       - sijadwal-net
     healthcheck:
