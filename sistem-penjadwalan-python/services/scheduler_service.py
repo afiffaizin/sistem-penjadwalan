@@ -162,6 +162,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 'kelas_nama': p.get('kelas_nama', p.get('kelas', '')),
                 'tahun_ajar_id': p.get('tahun_ajar_id', 1),
                 'group_matkul': p.get('group_matkul', '-'),
+                'prodi_id': p.get('prodi_id'),
                 'durasi': jt,
                 'jenis': 'teori',
             })
@@ -177,6 +178,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 'kelas_nama': p.get('kelas_nama', p.get('kelas', '')),
                 'tahun_ajar_id': p.get('tahun_ajar_id', 1),
                 'group_matkul': p.get('group_matkul', '-'),
+                'prodi_id': p.get('prodi_id'),
                 'durasi': jp,
                 'jenis': 'praktikum',
             })
@@ -278,6 +280,39 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             task_intervals[i][d] = iv
             
     n = len(tasks)
+
+    # ── C10: Praktikum room-prodi soft preference (penalty-based) ──
+    # Same prodi → 0, shared (NULL) → low penalty, different prodi → high penalty.
+    # All rooms remain valid candidates; solver minimizes total penalty.
+    PENALTY_SHARED = 5
+    PENALTY_CROSS_PRODI = 15
+    prodi_penalties = []  # list of IntVar penalties to minimize
+
+    if 'praktikum' in rooms_by_cat:
+        prak_rooms = rooms_by_cat['praktikum']
+        num_prak_rooms = len(prak_rooms)
+
+        for i, t in enumerate(tasks):
+            if t['jenis'] != 'praktikum':
+                continue
+            task_prodi = t.get('prodi_id')
+            if not task_prodi:
+                continue
+
+            # Build penalty array: one value per room index
+            pen_values = []
+            for idx, r in enumerate(prak_rooms):
+                rp = r.get('prodi_id')
+                if rp and rp == task_prodi:
+                    pen_values.append(0)
+                elif not rp:
+                    pen_values.append(PENALTY_SHARED)
+                else:
+                    pen_values.append(PENALTY_CROSS_PRODI)
+
+            pen_var = model.NewIntVar(0, PENALTY_CROSS_PRODI, f"prodi_pen_{i}")
+            model.AddElement(room_vars[i], pen_values, pen_var)
+            prodi_penalties.append(pen_var)
 
     # Helper for C8 (Teori before Praktikum)
     def _time_var(i):
@@ -400,8 +435,12 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             model.Add(time_vars_cache[teori_idx] < time_vars_cache[prak_idx])
 
     # ── 4. Solve ──
+    # Minimize prodi room mismatch penalties (0 if no praktikum tasks with prodi)
+    if prodi_penalties:
+        model.Minimize(sum(prodi_penalties))
+
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 600.0
+    solver.parameters.max_time_in_seconds = 700.0
     solver.parameters.max_memory_in_mb = 2048
     solver.parameters.num_workers = 4
 

@@ -85,6 +85,7 @@ class JadwalController extends Controller
                     'kelas_id' => $item->kelas_id,
                     'kelas_nama' => $item->kelas->nama ?? '-',
                     'tahun_ajar_id' => $item->tahun_ajar_id,
+                    'prodi_id' => $item->mata_kuliah->prodi_id ?? null,
                     'jam_teori' => $sksTeori * 1,
                     'jam_praktikum' => $sksPraktikum * 2
                 ];
@@ -97,7 +98,8 @@ class JadwalController extends Controller
             return [
                 'id' => $r->id,
                 'nama' => $r->nama,
-                'kategori' => strtolower($r->kategori)
+                'kategori' => strtolower($r->kategori),
+                'prodi_id' => $r->prodi_id,
             ];
         })->toArray();
 
@@ -113,17 +115,18 @@ class JadwalController extends Controller
             ->toArray();
 
         if (empty($pengampu) || empty($ruangan)) {
-            return back()->with('error',
+            return back()->with(
+                'error',
                 '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                '<strong>Alasan:</strong><br>Data tidak lengkap.<br>' .
-                '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Belum ada data ploting dosen atau data ruangan pada semester ini.</li></ul><br>' .
-                '<strong>Rekomendasi:</strong><br>• Silakan lengkapi data ploting dosen mengajar dan data ruangan terlebih dahulu, lalu coba kembali.'
+                    '<strong>Alasan:</strong><br>Data tidak lengkap.<br>' .
+                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Belum ada data ploting dosen atau data ruangan pada semester ini.</li></ul><br>' .
+                    '<strong>Rekomendasi:</strong><br>• Silakan lengkapi data ploting dosen mengajar dan data ruangan terlebih dahulu, lalu coba kembali.'
             );
         }
 
         try {
             // 4. Kirim data ke Python
-            $response = Http::timeout(700)
+            $response = Http::timeout(800)
                 ->post(config('services.python.url') . '/api/generate-jadwal', [
                     'pengampu' => $pengampu,
                     'ruangan' => $ruangan,
@@ -131,11 +134,12 @@ class JadwalController extends Controller
                 ]);
 
             if ($response->failed()) {
-                return back()->with('error',
+                return back()->with(
+                    'error',
                     '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                    '<strong>Alasan:</strong><br>Kesalahan koneksi.<br>' .
-                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal terhubung ke server penjadwalan.</li></ul><br>' .
-                    '<strong>Rekomendasi:</strong><br>• Pastikan server penjadwalan (Uvicorn) sedang berjalan dan coba lagi.'
+                        '<strong>Alasan:</strong><br>Kesalahan koneksi.<br>' .
+                        '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal terhubung ke server penjadwalan.</li></ul><br>' .
+                        '<strong>Rekomendasi:</strong><br>• Pastikan server penjadwalan (Uvicorn) sedang berjalan dan coba lagi.'
                 );
             }
 
@@ -143,7 +147,7 @@ class JadwalController extends Controller
 
             if (isset($hasil['status_solver']) && $hasil['status_solver'] === 'GAGAL') {
                 $pesanError = '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>';
-                
+
                 if (!empty($hasil['pesan'])) {
                     $pesanError .= '<strong>Alasan:</strong><br>' . e($hasil['pesan']);
                 } else {
@@ -191,19 +195,21 @@ class JadwalController extends Controller
                     ->with('success', 'Jadwal berhasil digenerate khusus untuk semester ini tanpa menghapus data semester lain!');
             } catch (\Exception $e) {
                 DB::rollBack();
-                return back()->with('error',
+                return back()->with(
+                    'error',
                     '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                    '<strong>Alasan:</strong><br>Kesalahan database.<br>' .
-                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal menyimpan jadwal yang dibuat ke dalam database.</li></ul><br>' .
-                    '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
+                        '<strong>Alasan:</strong><br>Kesalahan database.<br>' .
+                        '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Gagal menyimpan jadwal yang dibuat ke dalam database.</li></ul><br>' .
+                        '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
                 );
             }
         } catch (\Exception $e) {
-            return back()->with('error',
+            return back()->with(
+                'error',
                 '<strong>❌ Pembuatan jadwal gagal.</strong><br><br>' .
-                '<strong>Alasan:</strong><br>Kesalahan sistem.<br>' .
-                '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Terjadi kesalahan sistem yang tidak terduga.</li></ul><br>' .
-                '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
+                    '<strong>Alasan:</strong><br>Kesalahan sistem.<br>' .
+                    '<ul class="list-disc pl-5 mt-1 space-y-1 text-sm text-red-600"><li>Terjadi kesalahan sistem yang tidak terduga.</li></ul><br>' .
+                    '<strong>Rekomendasi:</strong><br>• Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem.'
             );
         }
     }
@@ -284,8 +290,8 @@ class JadwalController extends Controller
                         })
                         ->where(function ($q) use ($jadwalTarget) {
                             $q->where('kelas_id', $jadwalTarget->kelas_id)
-                              ->orWhere('dosen_id', $jadwalTarget->dosen_id)
-                              ->orWhere('ruang_id', $jadwalTarget->ruang_id);
+                                ->orWhere('dosen_id', $jadwalTarget->dosen_id)
+                                ->orWhere('ruang_id', $jadwalTarget->ruang_id);
                         })->get();
 
                     if ($konflik->count() > 1) {
