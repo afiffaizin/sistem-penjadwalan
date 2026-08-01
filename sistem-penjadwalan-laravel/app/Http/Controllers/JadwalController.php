@@ -64,7 +64,7 @@ class JadwalController extends Controller
             ->get()
             ->reject(function ($item) {
                 if (!$item->mata_kuliah) {
-                    return false;
+                    return true;
                 }
                 $namaMk = strtolower($item->mata_kuliah->nama);
                 return str_contains($namaMk, 'proyek keamanan siber') ||
@@ -93,7 +93,7 @@ class JadwalController extends Controller
             ->toArray();
 
         // 3. Tarik Data Ruangan
-        $ruangan = Ruang::all()->map(function ($r) {
+        $ruangan = Ruang::where('tahun_ajar_id', $targetTahunAjarId)->get()->map(function ($r) {
             return [
                 'id' => $r->id,
                 'nama' => $r->nama,
@@ -255,27 +255,28 @@ class JadwalController extends Controller
             'sesi_mulai_baru' => 'required|integer|min:1|max:8',
         ]);
 
-        $jadwalTarget = Jadwal::findOrFail($request->jadwal_id);
-
-        // Hitung durasi asli blok matkul
-        $durasiAsli = ($jadwalTarget->sesi_selesai - $jadwalTarget->sesi_mulai) + 1;
-
         $hariBaru = $request->hari_baru;
         $sesiMulaiBaru = (int) $request->sesi_mulai_baru;
-        $sesiSelesaiBaru = $sesiMulaiBaru + $durasiAsli - 1;
-
-        // Batasi agar pergeseran tidak melebihi batas maksimum sesi harian (sesi 8)
-        if ($sesiSelesaiBaru > 8) {
-            return redirect()->back()->with('error', "Gagal! Matkul berdurasi {$durasiAsli} sesi, tidak muat jika dimulai dari Sesi {$sesiMulaiBaru}.");
-        }
 
         try {
-            DB::transaction(function () use ($request, $jadwalTarget, $hariBaru, $sesiMulaiBaru, $sesiSelesaiBaru) {
+            DB::transaction(function () use ($request, $hariBaru, $sesiMulaiBaru) {
+
+                // Lock jadwal target agar tidak ada race condition
+                $jadwalTarget = Jadwal::lockForUpdate()->findOrFail($request->jadwal_id);
+
+                // Hitung durasi asli blok matkul
+                $durasiAsli = ($jadwalTarget->sesi_selesai - $jadwalTarget->sesi_mulai) + 1;
+                $sesiSelesaiBaru = $sesiMulaiBaru + $durasiAsli - 1;
+
+                // Batasi agar pergeseran tidak melebihi batas maksimum sesi harian (sesi 8)
+                if ($sesiSelesaiBaru > 8) {
+                    throw new \Exception("Gagal! Matkul berdurasi {$durasiAsli} sesi, tidak muat jika dimulai dari Sesi {$sesiMulaiBaru}.");
+                }
 
                 // TUKAR POSISI (SWAP)
                 if ($request->has('mode_tukar')) {
                     // Cari jadwal apa saja yang konflik dengan posisi baru (bisa bentrok kelas, dosen, atau ruangan)
-                    $konflik = Jadwal::where('hari', $hariBaru)
+                    $konflik = Jadwal::lockForUpdate()->where('hari', $hariBaru)
                         ->where('id', '!=', $jadwalTarget->id)
                         ->where(function ($q) use ($sesiMulaiBaru, $sesiSelesaiBaru) {
                             $q->where('sesi_mulai', '<=', $sesiSelesaiBaru)
@@ -297,7 +298,15 @@ class JadwalController extends Controller
                         // Simpan posisi lama Jadwal Target untuk barter posisi
                         $hariLama = $jadwalTarget->hari;
                         $sesiMulaiLama = $jadwalTarget->sesi_mulai;
-                        $sesiSelesaiLama = $jadwalTarget->sesi_selesai;
+
+                        // Hitung durasi masing-masing agar swap mempertahankan durasi asli
+                        $durasiTabrakan = ($jadwalTabrakan->sesi_selesai - $jadwalTabrakan->sesi_mulai) + 1;
+                        $sesiSelesaiLamaBaru = $sesiMulaiLama + $durasiTabrakan - 1;
+
+                        // Pastikan jadwal tabrakan muat di posisi lama target
+                        if ($sesiSelesaiLamaBaru > 8) {
+                            throw new \Exception("Gagal Tukar: Jadwal yang ditukar berdurasi {$durasiTabrakan} sesi, tidak muat di posisi asal (Sesi {$sesiMulaiLama}).");
+                        }
 
                         // CEK BENTROK UNTUK JADWAL TARGET DI POSISI BARU (abaikan jadwalTabrakan)
                         $cekBentrokTarget = Jadwal::where('hari', $hariBaru)
@@ -320,8 +329,8 @@ class JadwalController extends Controller
                         // CEK BENTROK UNTUK JADWAL TABRAKAN DI POSISI LAMA TARGET (abaikan jadwalTarget)
                         $cekBentrokTabrakan = Jadwal::where('hari', $hariLama)
                             ->whereNotIn('id', [$jadwalTarget->id, $jadwalTabrakan->id])
-                            ->where(function ($q) use ($sesiMulaiLama, $sesiSelesaiLama) {
-                                $q->where('sesi_mulai', '<=', $sesiSelesaiLama)
+                            ->where(function ($q) use ($sesiMulaiLama, $sesiSelesaiLamaBaru) {
+                                $q->where('sesi_mulai', '<=', $sesiSelesaiLamaBaru)
                                     ->where('sesi_selesai', '>=', $sesiMulaiLama);
                             });
 
@@ -335,11 +344,11 @@ class JadwalController extends Controller
                             throw new \Exception("Gagal Tukar: Ruangan jadwal yang ditukar sedang digunakan pada sesi asal.");
                         }
 
-                        // Pindahkan jadwal yang ditabrak ke posisi lama jadwal target
+                        // Pindahkan jadwal yang ditabrak ke posisi lama jadwal target (durasi dipertahankan)
                         $jadwalTabrakan->update([
                             'hari' => $hariLama,
                             'sesi_mulai' => $sesiMulaiLama,
-                            'sesi_selesai' => $sesiSelesaiLama
+                            'sesi_selesai' => $sesiSelesaiLamaBaru
                         ]);
 
                         // Pindahkan jadwal target ke posisi baru

@@ -41,7 +41,7 @@ class MataKuliahController extends Controller
             'prodi_id'      => 'required|exists:program_studis,id'
         ]);
 
-        MataKuliah::create($request->all());
+        MataKuliah::create($request->only(['nama', 'sks_teori', 'sks_praktikum', 'sks_total', 'kode_group', 'prodi_id', 'tahun_ajar_id']));
         return redirect()->route('matkul.index')->with('success', 'Data Mata Kuliah berhasil ditambahkan.');
     }
 
@@ -62,12 +62,16 @@ class MataKuliahController extends Controller
             'prodi_id'      => 'required|exists:program_studis,id'
         ]);
 
-        $matkul->update($request->all());
+        $matkul->update($request->only(['nama', 'sks_teori', 'sks_praktikum', 'sks_total', 'kode_group', 'prodi_id', 'tahun_ajar_id']));
         return redirect()->route('matkul.index')->with('success', 'Data Mata Kuliah berhasil diperbarui.');
     }
 
     public function destroy(MataKuliah $matkul)
     {
+        if (\App\Models\DosenMatkul::where('mata_kuliah_id', $matkul->id)->exists() || \App\Models\Jadwal::where('mata_kuliah_id', $matkul->id)->exists()) {
+            return back()->with('error', 'Gagal menghapus: Mata kuliah ini masih memiliki data jadwal atau ploting terkait.');
+        }
+
         $matkul->delete();
         return back()->with('success', 'Data Mata Kuliah berhasil dihapus.');
     }

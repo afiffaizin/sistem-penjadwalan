@@ -36,7 +36,7 @@ class DosenController extends Controller
             'nip'       => 'nullable|string'
         ]);
 
-        Dosen::create($request->all());
+        Dosen::create($request->only(['kode_dosen', 'nama', 'nip', 'tahun_ajar_id']));
         return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil ditambahkan.');
     }
 
@@ -53,12 +53,16 @@ class DosenController extends Controller
             'nip'       => 'nullable|string'
         ]);
 
-        $dosen->update($request->all());
+        $dosen->update($request->only(['kode_dosen', 'nama', 'nip', 'tahun_ajar_id']));
         return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil diperbarui.');
     }
 
     public function destroy(Dosen $dosen)
     {
+        if ($dosen->unavailableDays()->exists() || \App\Models\DosenMatkul::where('dosen_id', $dosen->id)->exists() || \App\Models\Jadwal::where('dosen_id', $dosen->id)->exists()) {
+            return back()->with('error', 'Gagal menghapus: Dosen ini masih memiliki data terkait (jadwal/ploting/hari tidak mengajar). Hapus data terkait terlebih dahulu.');
+        }
+
         $dosen->delete();
         return back()->with('success', 'Data Dosen berhasil dihapus.');
     }

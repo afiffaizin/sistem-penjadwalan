@@ -48,7 +48,7 @@ class KelasController extends Controller
             return back()->withInput()->with('error', 'Kelas dengan nama ini sudah ada di prodi dan tahun ajar tersebut.');
         }
 
-        Kelas::create($request->all());
+        Kelas::create($request->only(['nama', 'prodi_id', 'tahun_ajar_id']));
 
         return redirect()->route('kelas.index')->with('success', 'Data Kelas berhasil ditambahkan!');
     }
@@ -81,7 +81,7 @@ class KelasController extends Controller
             return back()->withInput()->with('error', 'Kelas dengan nama ini sudah ada di prodi dan tahun ajar tersebut.');
         }
 
-        $kelas->update($request->all());
+        $kelas->update($request->only(['nama', 'prodi_id', 'tahun_ajar_id']));
 
         return redirect()->route('kelas.index')->with('success', 'Data Kelas berhasil diperbarui!');
     }
@@ -89,6 +89,11 @@ class KelasController extends Controller
     public function destroy($id)
     {
         $kelas = Kelas::findOrFail($id);
+
+        if (\App\Models\DosenMatkul::where('kelas_id', $id)->exists() || \App\Models\Jadwal::where('kelas_id', $id)->exists()) {
+            return redirect()->route('kelas.index')->with('error', 'Gagal menghapus: Kelas ini masih memiliki data jadwal atau ploting terkait.');
+        }
+
         $kelas->delete();
 
         return redirect()->route('kelas.index')->with('success', 'Data Kelas berhasil dihapus!');

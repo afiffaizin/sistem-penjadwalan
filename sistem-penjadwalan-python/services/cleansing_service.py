@@ -163,7 +163,22 @@ def merge_matkul_ploting(ploting_df, matkul_df):
 
 # TAHAP 4: CLEANSING RUANGAN (SUDAH DILENGKAPI FIND_COL)
 def cleanse_ruangan(xls_ruang):
-    df_ruang = pd.read_excel(xls_ruang, sheet_name="ruang")
+    # Cari sheet "ruang" secara case-insensitive
+    target_sheet = None
+    for name in xls_ruang.sheet_names:
+        if name.strip().lower() == "ruang":
+            target_sheet = name
+            break
+
+    if target_sheet is None:
+        available = ", ".join(xls_ruang.sheet_names) if xls_ruang.sheet_names else "(kosong)"
+        raise ValueError(
+            f"Sheet 'ruang' tidak ditemukan pada file Excel ruangan. "
+            f"Sheet yang tersedia: {available}. "
+            f"Pastikan file memiliki sheet bernama 'ruang'."
+        )
+
+    df_ruang = pd.read_excel(xls_ruang, sheet_name=target_sheet)
     
     # Deteksi kolom secara cerdas menggunakan helper find_col
     col_ruang = find_col(df_ruang, ["nama_ruang", "nama ruang", "ruang", "kode"])

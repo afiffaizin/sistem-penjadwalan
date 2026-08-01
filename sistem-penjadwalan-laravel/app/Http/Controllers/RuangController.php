@@ -38,7 +38,7 @@ class RuangController extends Controller
             'prodi_id'  => 'required|exists:program_studis,id'
         ]);
 
-        Ruang::create($request->all());
+        Ruang::create($request->only(['nama', 'kategori', 'prodi_id', 'tahun_ajar_id']));
         return redirect()->route('ruang.index')->with('success', 'Data Ruangan berhasil ditambahkan.');
     }
 
@@ -56,12 +56,16 @@ class RuangController extends Controller
             'prodi_id'  => 'required|exists:program_studis,id'
         ]);
 
-        $ruang->update($request->all());
+        $ruang->update($request->only(['nama', 'kategori', 'prodi_id', 'tahun_ajar_id']));
         return redirect()->route('ruang.index')->with('success', 'Data Ruangan berhasil diperbarui.');
     }
 
     public function destroy(Ruang $ruang)
     {
+        if (\App\Models\Jadwal::where('ruang_id', $ruang->id)->exists()) {
+            return back()->with('error', 'Gagal menghapus: Ruangan ini masih digunakan dalam jadwal.');
+        }
+
         $ruang->delete();
         return back()->with('success', 'Data Ruangan berhasil dihapus.');
     }
