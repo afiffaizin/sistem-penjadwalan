@@ -23,7 +23,7 @@ class JadwalController extends Controller
             $selectedTahunAjarId = $request->tahun_ajar_id;
             $tahunAjarAktifLabel = TahunAjar::find($selectedTahunAjarId);
         } else {
-            $tahunAjarAktifLabel = TahunAjar::where('is_active', true)->first();
+            $tahunAjarAktifLabel = TahunAjar::where('is_active', true)->first() ?? $daftarTahunAjar->first();
             $selectedTahunAjarId = $tahunAjarAktifLabel ? $tahunAjarAktifLabel->id : null;
         }
 
@@ -34,9 +34,11 @@ class JadwalController extends Controller
                 ->where('tahun_ajar_id', $selectedTahunAjarId)
                 ->orderByRaw("FIELD(hari, 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat')")
                 ->orderBy('sesi_mulai')
-                ->get();
+                ->paginate(25)
+                ->withQueryString();
 
             $activeJob = JadwalGenerateJob::where('tahun_ajar_id', $selectedTahunAjarId)
+                ->whereIn('status', ['pending', 'processing'])
                 ->latest()
                 ->first();
         }
@@ -46,6 +48,7 @@ class JadwalController extends Controller
             'tahunAjarAktif' => $tahunAjarAktifLabel,
             'jadwalList' => $jadwalList,
             'activeJob' => $activeJob,
+            'hasTahunAjar' => $daftarTahunAjar->isNotEmpty(),
         ]);
     }
 
