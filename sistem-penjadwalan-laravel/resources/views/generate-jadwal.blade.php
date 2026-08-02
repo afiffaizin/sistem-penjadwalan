@@ -22,7 +22,7 @@
                             Pilih Tahun Ajar Aktif:
                         </label>
                         <div class="relative w-full">
-                            <select name="tahun_ajar_id" id="tahun_ajar_id" onchange="gantiTahunAjar(this.value)" 
+                            <select name="tahun_ajar_id" id="tahun_ajar_id" onchange="switchAcademicYear(this.value)" 
                                 class="w-full min-w-[240px] bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2.5 pr-8 font-semibold shadow-sm cursor-pointer appearance-none">
                                 @foreach($daftarTahunAjar as $ta)
                                     <option value="{{ $ta->id }}" {{ $ta->id == $tahunAjarAktif->id ? 'selected' : '' }}>
@@ -38,11 +38,11 @@
                 </div>
                 
                 <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto self-end md:self-center">
-                    <button type="button" id="btnGenerate" onclick="mulaiGenerate()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-amber-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                    <button type="button" id="btnGenerate" onclick="startGenerate()" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-amber-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-wand-magic-sparkles text-xl"></i> Mulai Auto-Generate
                     </button>
                     @if(isset($jadwalList) && count($jadwalList) > 0)
-                        <button type="button" id="btnHapus" onclick="hapusJadwal()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-red-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                        <button type="button" id="btnHapus" onclick="deleteSchedule()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl shadow-md shadow-red-200 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
                             <i class="fa-solid fa-trash text-lg"></i> Hapus Jadwal
                         </button>
                     @endif
@@ -163,7 +163,7 @@
             @endif
         });
 
-        function getTahunAjarId() {
+        function getAcademicYearId() {
             return document.getElementById('tahun_ajar_id').value;
         }
 
@@ -241,13 +241,13 @@
         }
 
         function pollStatus() {
-            $.get(URL_STATUS, { tahun_ajar_id: getTahunAjarId() })
+            $.get(URL_STATUS, { tahun_ajar_id: getAcademicYearId() })
                 .done(function(data) {
                     if (data.job_status === 'completed') {
                         stopPolling();
                         showStatus('completed');
                         setTimeout(function() {
-                            window.location.href = URL_INDEX + '?tahun_ajar_id=' + getTahunAjarId();
+                            window.location.href = URL_INDEX + '?tahun_ajar_id=' + getAcademicYearId();
                         }, 1500);
                     } else if (data.job_status === 'failed') {
                         stopPolling();
@@ -267,58 +267,94 @@
                 });
         }
 
-        function mulaiGenerate() {
-            Swal.fire({
-                title: 'Mulai Auto-Generate?',
-                text: "Proses ini akan memakan waktu hingga beberapa menit dan akan me-reset jadwal lama. Lanjutkan?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#f59e0b',
-                cancelButtonColor: '#94a3b8',
-                confirmButtonText: '<i class="fa-solid fa-rocket mr-1"></i> Ya, Generate!',
-                cancelButtonText: 'Batal',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    setButtonsDisabled(true);
+        const SCHEDULE_EXISTS = {{ (isset($jadwalList) && count($jadwalList) > 0) ? 'true' : 'false' }};
 
-                    $.ajax({
-                        url: URL_GENERATE,
-                        method: 'POST',
-                        data: {
-                            _token: CSRF_TOKEN,
-                            tahun_ajar_id: getTahunAjarId()
-                        },
-                        dataType: 'json',
-                        success: function(data) {
-                            if (data.status === 'ok') {
-                                jobStartTime = new Date();
-                                showStatus('pending');
-                                startPolling();
-                            } else {
-                                Swal.fire('Gagal', data.message || 'Terjadi kesalahan.', 'error');
-                                setButtonsDisabled(false);
-                            }
-                        },
-                        error: function(xhr) {
-                            let msg = 'Terjadi kesalahan.';
-                            if (xhr.responseJSON && xhr.responseJSON.message) {
-                                msg = xhr.responseJSON.message;
-                            }
-                            Swal.fire('Gagal', msg, 'error');
-                            setButtonsDisabled(false);
-                        }
-                    });
+        function startGenerate() {
+            if (SCHEDULE_EXISTS) {
+                // Jadwal sudah pernah di-generate → tampilkan peringatan keras
+                Swal.fire({
+                    title: '<span style="color:#dc2626">⚠️ Jadwal Sudah Ada!</span>',
+                    html: `<div style="text-align:left; font-size:14px; line-height:1.7;">
+                        <p>Jadwal untuk tahun ajar ini <strong>sudah pernah digenerate</strong>.</p>
+                        <p style="margin-top:8px;">Jika Anda melanjutkan, maka:</p>
+                        <ul style="margin-top:4px; padding-left:20px; list-style:disc;">
+                            <li>Seluruh <strong>jadwal lama akan dihapus</strong></li>
+                            <li>Proses generate ulang memakan waktu <strong>beberapa menit</strong></li>
+                            <li>Perubahan manual yang sudah dilakukan akan <strong>hilang</strong></li>
+                        </ul>
+                        <p style="margin-top:12px; color:#dc2626; font-weight:bold;">Apakah Anda yakin ingin menimpa jadwal yang sudah ada?</p>
+                    </div>`,
+                    icon: 'error',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#94a3b8',
+                    confirmButtonText: '<i class="fa-solid fa-triangle-exclamation mr-1"></i> Ya, Generate Ulang!',
+                    cancelButtonText: 'Batal, Pertahankan Jadwal',
+                    reverseButtons: true,
+                    focusCancel: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        submitGenerate();
+                    }
+                });
+            } else {
+                // Jadwal belum ada → konfirmasi biasa
+                Swal.fire({
+                    title: 'Mulai Auto-Generate?',
+                    text: "Proses ini akan memakan waktu hingga beberapa menit. Lanjutkan?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#f59e0b',
+                    cancelButtonColor: '#94a3b8',
+                    confirmButtonText: '<i class="fa-solid fa-rocket mr-1"></i> Ya, Generate!',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        submitGenerate();
+                    }
+                });
+            }
+        }
+
+        function submitGenerate() {
+            setButtonsDisabled(true);
+
+            $.ajax({
+                url: URL_GENERATE,
+                method: 'POST',
+                data: {
+                    _token: CSRF_TOKEN,
+                    tahun_ajar_id: getAcademicYearId()
+                },
+                dataType: 'json',
+                success: function(data) {
+                    if (data.status === 'ok') {
+                        jobStartTime = new Date();
+                        showStatus('pending');
+                        startPolling();
+                    } else {
+                        Swal.fire('Gagal', data.message || 'Terjadi kesalahan.', 'error');
+                        setButtonsDisabled(false);
+                    }
+                },
+                error: function(xhr) {
+                    let msg = 'Terjadi kesalahan.';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    Swal.fire('Gagal', msg, 'error');
+                    setButtonsDisabled(false);
                 }
             });
         }
 
-        function gantiTahunAjar(id) {
+        function switchAcademicYear(id) {
             stopPolling();
             window.location.href = URL_INDEX + '?tahun_ajar_id=' + id;
         }
 
-        function hapusJadwal() {
+        function deleteSchedule() {
             const select = document.getElementById('tahun_ajar_id');
             const labelTahunAjar = select.options[select.selectedIndex].text.trim();
 
