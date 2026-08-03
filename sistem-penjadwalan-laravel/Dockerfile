@@ -56,6 +56,10 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# Queue worker entrypoint (used by queue-worker service)
+COPY queue-worker-entrypoint.sh /var/www/html/queue-worker-entrypoint.sh
+RUN chmod +x /var/www/html/queue-worker-entrypoint.sh
+
 EXPOSE 80
 
 ENTRYPOINT ["entrypoint.sh"]

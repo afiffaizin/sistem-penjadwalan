@@ -49,6 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         Route::get('/jadwal/generate', [JadwalController::class, 'index'])->name('jadwal.index');
         Route::post('/jadwal/generate/process', [JadwalController::class, 'generate'])->name('jadwal.generate');
+        Route::get('/jadwal/generate/status', [JadwalController::class, 'generateStatus'])->name('jadwal.generate.status');
         Route::delete('/jadwal/delete', [JadwalController::class, 'deleteByTahunAjar'])->name('jadwal.delete');
         Route::post('/jadwal/proses-ubah', [JadwalController::class, 'prosesUbahJadwal'])->name('jadwal.proses-ubah');
         Route::get('/request-hari-tidak-mengajar', [KaprodiController::class, 'monitorUnavailableDays'])->name('sekjur.unavailable-days');
