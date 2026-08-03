@@ -440,7 +440,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
         model.Minimize(sum(prodi_penalties))
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 800.0
+    solver.parameters.max_time_in_seconds = 900.0
     solver.parameters.max_memory_in_mb = 4096
     solver.parameters.num_workers = 7
 
