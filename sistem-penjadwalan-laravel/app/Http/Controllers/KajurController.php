@@ -88,6 +88,6 @@ class KajurController extends Controller
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 
-        return view('kajur.lihat-jadwal', $jadwalViewService->buildPublic($request));
+        return view('jadwal.index', $jadwalViewService->build($request));
     }
 }

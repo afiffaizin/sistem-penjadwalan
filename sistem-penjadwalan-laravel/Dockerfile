@@ -16,8 +16,8 @@ COPY vite.config.js postcss.config.js tailwind.config.js ./
 RUN npm run build
 
 
-# Stage 3: Final runtime — PHP 8.2 + Apache
-FROM php:8.3-apache
+# Stage 3: Final runtime — PHP 8.3 + Apache (Menggunakan Bookworm/Stable)
+FROM php:8.3-apache-bookworm
 # System deps for PHP extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev libjpeg-dev libfreetype6-dev libzip-dev libonig-dev \

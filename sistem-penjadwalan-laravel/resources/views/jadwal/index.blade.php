@@ -37,7 +37,7 @@
 
         <div class="bg-white rounded-xl shadow-sm p-6 mb-6 border-l-8 border-amber-500">
 
-            <form id="formFilterJadwal" action="{{ route('jadwal.matrix') }}" method="GET">
+            <form id="formFilterJadwal" action="{{ url()->current() }}" method="GET">
 
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
@@ -152,7 +152,7 @@
                     </div>
 
                     <div class="flex w-full sm:w-auto justify-end gap-3">
-                        <a href="{{ route('jadwal.matrix') }}"
+                        <a href="{{ url()->current() }}"
                             class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-200 transition text-center min-w-[80px]">Reset</a>
 
                         <button type="submit"

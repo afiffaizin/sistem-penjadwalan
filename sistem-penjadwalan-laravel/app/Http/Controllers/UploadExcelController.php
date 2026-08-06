@@ -128,7 +128,10 @@ class UploadExcelController extends Controller
 
                 Ruang::updateOrCreate(
                     ['nama' => $r['ruang'], 'prodi_id' => $prodi->id, 'tahun_ajar_id' => $taId],
-                    ['kategori' => $r['kategori']]
+                    [
+                        'kategori' => $r['kategori'],
+                        'spesifik_mk' => $r['spesifik_mk'] ?? null,
+                    ]
                 );
             }
 

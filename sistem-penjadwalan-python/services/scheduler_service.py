@@ -260,8 +260,25 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
 
         dv = model.NewIntVar(0, num_hari - 1, f"day_{i}")
         sv = model.NewIntVar(0, max_start, f"start_{i}")
-        rv = model.NewIntVar(0, num_rooms - 1, f"room_{i}")
         
+        # LOGIKA SPESIFIK MK
+        mk_nama = str(t.get("mata_kuliah_nama", "")).strip().lower()
+        allowed_rooms = []
+        for r_idx, r in enumerate(rooms_by_cat.get(cat, [])):
+            r_spesifik = str(r.get("spesifik_mk", "")).strip().lower()
+            if r_spesifik != "":
+                # Pisahkan berdasarkan koma untuk mendukung banyak MK di satu ruangan
+                spesifik_list = [s.strip() for s in r_spesifik.split(',')]
+                if mk_nama in spesifik_list:
+                    allowed_rooms.append(r_idx)
+                
+        if allowed_rooms:
+            # Jika MK ini punya ruangan spesifik yang cocok, HANYA boleh di ruangan tersebut
+            rv = model.NewIntVarFromDomain(cp_model.Domain.FromValues(allowed_rooms), f"room_{i}")
+        else:
+            # Jika tidak, bebas menggunakan ruangan mana saja (termasuk ruangan spesifik MK lain jika sedang kosong)
+            rv = model.NewIntVar(0, num_rooms - 1, f"room_{i}")
+
         day_vars.append(dv)
         start_vars.append(sv)
         room_vars.append(rv)
