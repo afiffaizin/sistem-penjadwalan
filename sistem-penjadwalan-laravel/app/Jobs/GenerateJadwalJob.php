@@ -179,6 +179,7 @@ class GenerateJadwalJob implements ShouldQueue
                     'nama' => $r->nama,
                     'kategori' => strtolower($r->kategori),
                     'prodi_id' => $r->prodi_id,
+                    'spesifik_mk' => $r->spesifik_mk,
                 ];
             })
             ->toArray();

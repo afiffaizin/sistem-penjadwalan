@@ -184,11 +184,13 @@ def cleanse_ruangan(xls_ruang):
     col_ruang = find_col(df_ruang, ["nama_ruang", "nama ruang", "ruang", "kode"])
     col_kat = find_col(df_ruang, ["kategori", "jenis", "tipe"])
     col_prodi = find_col(df_ruang, ["prodi", "program studi"])
+    col_spesifik_mk = find_col(df_ruang, ["spesifik_mk", "mata_kuliah", "matkul", "mata kuliah"])
 
     rename_mapping = {}
     if col_ruang: rename_mapping[col_ruang] = "ruang"
     if col_kat: rename_mapping[col_kat] = "kategori"
     if col_prodi: rename_mapping[col_prodi] = "prodi"
+    if col_spesifik_mk: rename_mapping[col_spesifik_mk] = "spesifik_mk"
     
     df_ruang = df_ruang.rename(columns=rename_mapping)
 
@@ -211,6 +213,11 @@ def cleanse_ruangan(xls_ruang):
 
     if "prodi" in df_ruang.columns:
         df_ruang["prodi"] = df_ruang["prodi"].fillna("").astype(str).str.strip()
+
+    if "spesifik_mk" in df_ruang.columns:
+        df_ruang["spesifik_mk"] = df_ruang["spesifik_mk"].fillna("").astype(str).str.strip()
+    else:
+        df_ruang["spesifik_mk"] = ""
     
     df_ruang = df_ruang.fillna("")
     
