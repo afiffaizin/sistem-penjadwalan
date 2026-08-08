@@ -41,7 +41,7 @@
                     <button type="submit" class="bg-amber-500 text-white px-4 py-2 rounded-lg shadow-sm shadow-amber-200 hover:bg-amber-600 font-medium text-sm transition flex items-center gap-2">
                         <i class="fa-solid fa-filter"></i> Filter
                     </button>
-                    @if(request('tahun_ajar_id'))
+                    @if(request('tahun_ajar_id') || request('search'))
                         <a href="{{ route('matkul.index') }}" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium text-sm transition flex items-center gap-2">
                             <i class="fa-solid fa-rotate-left"></i> Reset
                         </a>
