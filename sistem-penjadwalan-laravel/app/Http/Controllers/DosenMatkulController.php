@@ -23,6 +23,19 @@ class DosenMatkulController extends Controller
             $query->where('tahun_ajar_id', $request->tahun_ajar_id);
         }
 
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('dosen', function($q2) use ($search) {
+                    $q2->where('nama', 'like', "%{$search}%");
+                })->orWhereHas('mata_kuliah', function($q2) use ($search) {
+                    $q2->where('nama', 'like', "%{$search}%");
+                })->orWhereHas('kelas', function($q2) use ($search) {
+                    $q2->where('nama', 'like', "%{$search}%");
+                });
+            });
+        }
+
         $plottings = $query->paginate(20)->withQueryString();
 
         return view('master-data.plotting.index', compact('plottings', 'tahunAjars'));

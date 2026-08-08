@@ -19,10 +19,17 @@
     @endif
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-        <form method="GET" action="{{ route('ruang.index') }}" class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
-                <label class="text-sm font-bold text-gray-700 whitespace-nowrap">Filter Tahun Akademik:</label>
-                <select name="tahun_ajar_id" class="w-full sm:w-64 rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500">
+        <form method="GET" action="{{ route('ruang.index') }}" class="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 w-full">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                <div class="relative w-full sm:w-64 md:w-72">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="fa-solid fa-search text-gray-400"></i>
+                    </div>
+                    <input type="text" name="search" value="{{ request('search') }}" class="w-full pl-10 pr-3 py-2 rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" placeholder="Cari nama ruangan...">
+                </div>
+                
+                <label class="text-sm font-bold text-gray-700 whitespace-nowrap hidden md:block">Tahun Akademik:</label>
+                <select name="tahun_ajar_id" class="w-full sm:w-56 rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500">
                     <option value="">Semua Tahun Akademik</option>
                     @foreach($tahunAjars as $ta)
                         <option value="{{ $ta->id }}" {{ (string) request('tahun_ajar_id') === (string) $ta->id ? 'selected' : '' }}>

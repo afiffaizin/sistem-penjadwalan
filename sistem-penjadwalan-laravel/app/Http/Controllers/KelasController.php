@@ -19,6 +19,10 @@ class KelasController extends Controller
             $query->where('tahun_ajar_id', $request->tahun_ajar_id);
         }
         
+        if ($request->filled('search')) {
+            $query->where('nama', 'like', '%' . $request->search . '%');
+        }
+
         $kelasList = $query->paginate(10);
         
         return view('master-data.kelas.index', compact('kelasList', 'tahunAjars'));

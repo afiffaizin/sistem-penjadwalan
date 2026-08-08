@@ -18,6 +18,15 @@ class DosenController extends Controller
             $query->where('tahun_ajar_id', $request->tahun_ajar_id);
         }
 
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('kode_dosen', 'like', "%{$search}%")
+                  ->orWhere('nip', 'like', "%{$search}%");
+            });
+        }
+
         $dosens = $query->paginate(10);
 
         return view('master-data.dosen.index', compact('dosens', 'tahunAjars'));

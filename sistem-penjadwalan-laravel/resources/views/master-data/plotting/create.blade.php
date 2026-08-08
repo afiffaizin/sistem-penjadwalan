@@ -52,7 +52,7 @@
 
             <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl mb-6">
                 <div class="flex">
-                    <div class="flex-shrink-0">`
+                    <div class="flex-shrink-0">
                         <i class="fa-solid fa-lightbulb text-blue-500 text-xl"></i>
                     </div>
                     <div class="ml-3">

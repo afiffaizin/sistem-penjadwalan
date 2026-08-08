@@ -19,6 +19,14 @@ class MataKuliahController extends Controller
             $query->where('tahun_ajar_id', $request->tahun_ajar_id);
         }
 
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('kode_group', 'like', "%{$search}%");
+            });
+        }
+
         $matkulList = $query->paginate(10);
 
         return view('master-data.matkul.index', compact('matkulList', 'tahunAjars'));
