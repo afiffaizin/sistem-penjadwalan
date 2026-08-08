@@ -68,6 +68,7 @@
                     <a href="{{ route('prodi.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('prodi.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Program Studi</a>
                     <a href="{{ route('ruang.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('ruang.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Ruangan</a>
                     <a href="{{ route('matkul.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Mata Kuliah</a>
+                    <a href="{{ route('dosen-matkul.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('dosen-matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Plotting Dosen</a>
                 </div>
             </div>
 
