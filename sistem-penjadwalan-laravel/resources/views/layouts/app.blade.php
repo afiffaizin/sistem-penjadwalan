@@ -99,14 +99,14 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="bg-gray-50 text-gray-800 h-screen flex overflow-hidden font-sans">
+    <body class="bg-gray-50 text-gray-800 h-[100dvh] flex overflow-hidden font-sans">
 
         <!-- Mobile Sidebar Backdrop -->
         <div id="sidebarBackdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-gray-900/50 z-30 hidden md:hidden transition-opacity"></div>
 
         @include('layouts.sidebar')
 
-        <div class="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+        <div class="flex-1 flex flex-col h-[100dvh] overflow-hidden min-w-0">
             
             @include('layouts.navbar')
 
