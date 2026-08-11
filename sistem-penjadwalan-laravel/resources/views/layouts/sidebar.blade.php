@@ -1,16 +1,16 @@
-<aside id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col h-screen flex-shrink-0 fixed inset-y-0 left-0 z-40 transform -translate-x-full transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:flex shadow-sm">
+<aside id="sidebar" class="w-64 bg-white border-r border-gray-200 flex flex-col h-[100dvh] flex-shrink-0 fixed inset-y-0 left-0 z-40 transform -translate-x-full transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:flex shadow-sm">
     
     <div class="h-20 flex items-center justify-between px-6 pt-2">
         <div class="flex items-center">
             <img src="{{ asset('images/jkblogo1.png') }}" alt="Logo" class="h-8 w-8 mr-3">
             <span class="text-md font-bold text-amber-600 tracking-tight">Sistem Penjadwalan Perkuliahan</span>
         </div>
-        <button type="button" onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-amber-600 focus:outline-none p-1 transition" aria-label="Close Sidebar">
-            <i class="fa-solid fa-xmark text-xl"></i>
+        <button type="button" onclick="toggleSidebar()" class="md:hidden text-gray-400 hover:text-amber-600 focus:outline-none p-2 transition" aria-label="Close Sidebar">
+            <i class="fa-solid fa-xmark text-2xl"></i>
         </button>
     </div>
 
-    <nav class="flex-1 overflow-y-auto px-4 py-2 space-y-1.5">
+    <nav class="flex-1 overflow-y-auto px-4 py-2 pb-6 space-y-1.5" style="-webkit-overflow-scrolling: touch;">
         @if(auth()->user()->role === 'sekretaris')
             
             <div class="px-4 pb-2 pt-1">
@@ -63,11 +63,30 @@
 
                 <div id="submenuMasterData" class="{{ request()->is('sekjur/master-data*') || request()->is('master-data*') || request()->is('kelas*','dosen*','prodi*','matkul*','ruang*') ? 'block' : 'hidden' }} mt-1 space-y-1 pl-12 pr-4 py-2">
                     
-                    <a href="{{ route('kelas.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('kelas.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Kelas</a>
-                    <a href="{{ route('dosen.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('dosen.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Dosen</a>
-                    <a href="{{ route('prodi.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('prodi.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Program Studi</a>
-                    <a href="{{ route('ruang.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('ruang.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Ruangan</a>
-                    <a href="{{ route('matkul.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Mata Kuliah</a>
+                    <a href="{{ route('kelas.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('kelas.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-users text-xs w-4 text-center"></i>
+                        <span>Data Kelas</span>
+                    </a>
+                    <a href="{{ route('dosen.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('dosen.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-chalkboard-user text-xs w-4 text-center"></i>
+                        <span>Data Dosen</span>
+                    </a>
+                    <a href="{{ route('prodi.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('prodi.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-graduation-cap text-xs w-4 text-center"></i>
+                        <span>Data Program Studi</span>
+                    </a>
+                    <a href="{{ route('ruang.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('ruang.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-door-open text-xs w-4 text-center"></i>
+                        <span>Data Ruangan</span>
+                    </a>
+                    <a href="{{ route('matkul.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-book text-xs w-4 text-center"></i>
+                        <span>Mata Kuliah</span>
+                    </a>
+                    <a href="{{ route('dosen-matkul.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('dosen-matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-link text-xs w-4 text-center"></i>
+                        <span>Plotting Dosen</span>
+                    </a>
                 </div>
             </div>
 

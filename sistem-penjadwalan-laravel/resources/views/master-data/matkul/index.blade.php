@@ -19,10 +19,17 @@
     @endif
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-        <form method="GET" action="{{ route('matkul.index') }}" class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
-                <label class="text-sm font-bold text-gray-700 whitespace-nowrap">Filter Tahun Akademik:</label>
-                <select name="tahun_ajar_id" class="w-full sm:w-64 rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500">
+        <form method="GET" action="{{ route('matkul.index') }}" class="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 w-full">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                <div class="relative w-full sm:w-64 md:w-72">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="fa-solid fa-search text-gray-400"></i>
+                    </div>
+                    <input type="text" name="search" value="{{ request('search') }}" class="w-full pl-10 pr-3 py-2 rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" placeholder="Cari nama matkul...">
+                </div>
+                
+                <label class="text-sm font-bold text-gray-700 whitespace-nowrap hidden md:block">Tahun Akademik:</label>
+                <select name="tahun_ajar_id" class="w-full sm:w-56 rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500">
                     <option value="">Semua Tahun Akademik</option>
                     @foreach($tahunAjars as $ta)
                         <option value="{{ $ta->id }}" {{ (string) request('tahun_ajar_id') === (string) $ta->id ? 'selected' : '' }}>
@@ -34,7 +41,7 @@
                     <button type="submit" class="bg-amber-500 text-white px-4 py-2 rounded-lg shadow-sm shadow-amber-200 hover:bg-amber-600 font-medium text-sm transition flex items-center gap-2">
                         <i class="fa-solid fa-filter"></i> Filter
                     </button>
-                    @if(request('tahun_ajar_id'))
+                    @if(request('tahun_ajar_id') || request('search'))
                         <a href="{{ route('matkul.index') }}" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 font-medium text-sm transition flex items-center gap-2">
                             <i class="fa-solid fa-rotate-left"></i> Reset
                         </a>
@@ -82,9 +89,9 @@
                             <td class="px-6 py-4 text-center">
                                 <div class="flex justify-center gap-3">
                                     <a href="{{ route('matkul.edit', $m->id) }}" class="text-blue-500 hover:text-blue-700 transition"><i class="fa-solid fa-pen-to-square"></i></a>
-                                    <form action="{{ route('matkul.destroy', $m->id) }}" method="POST" onsubmit="return confirm('Yakin hapus?');">
+                                    <form action="{{ route('matkul.destroy', $m->id) }}" method="POST" class="inline-block delete-form">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="text-red-500 hover:text-red-700 transition"><i class="fa-solid fa-trash-can"></i></button>
+                                        <button type="button" class="text-red-500 hover:text-red-700 transition btn-delete"><i class="fa-solid fa-trash-can"></i></button>
                                     </form>
                                 </div>
                             </td>
@@ -101,3 +108,33 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteButtons = document.querySelectorAll('.btn-delete');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const form = this.closest('.delete-form');
+                
+                Swal.fire({
+                    title: 'Yakin hapus data ini?',
+                    text: 'Data yang dihapus tidak dapat dikembalikan.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#94a3b8',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+@endpush

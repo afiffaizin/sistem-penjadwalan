@@ -62,6 +62,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::resource('prodi', ProdiController::class);
             Route::resource('ruang', RuangController::class);
             Route::resource('matkul', MataKuliahController::class);
+            Route::resource('dosen-matkul', \App\Http\Controllers\DosenMatkulController::class);
         });
     });
 

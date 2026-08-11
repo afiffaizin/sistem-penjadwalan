@@ -30,12 +30,25 @@
                 @error('nama') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
             </div>
 
-            <div class="mb-8">
+            <div class="mb-5">
                 <label class="block text-sm font-bold text-gray-700 mb-2">NIP</label>
                 <input type="text" name="nip" value="{{ old('nip') }}" 
                     class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2.5 outline-none transition @error('nip') border-red-500 @enderror" 
                     placeholder="Contoh: 0612345678">
                 @error('nip') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
+            </div>
+
+            <div class="mb-8">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Tahun Ajar <span class="text-red-500">*</span></label>
+                <select name="tahun_ajar_id" class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2.5 outline-none transition bg-white @error('tahun_ajar_id') border-red-500 @enderror" required>
+                    <option value="">-- Pilih Tahun Ajar --</option>
+                    @foreach($tahunAjars as $ta)
+                        <option value="{{ $ta->id }}" {{ old('tahun_ajar_id', $ta->is_active ? $ta->id : '') == $ta->id ? 'selected' : '' }}>
+                            {{ $ta->tahun }} - {{ ucfirst($ta->semester) }} @if($ta->is_active) (AKTIF) @endif
+                        </option>
+                    @endforeach
+                </select>
+                @error('tahun_ajar_id') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
             </div>
 
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
