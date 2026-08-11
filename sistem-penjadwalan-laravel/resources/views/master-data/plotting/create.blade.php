@@ -111,6 +111,11 @@
                         <label class="block text-xs font-bold text-gray-700 mb-1">SKS Praktikum</label>
                         <input type="number" name="sks_praktikum" id="sks_praktikum" value="0" min="0" max="6" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500">
                     </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Kode Group (Opsional)</label>
+                        <input type="text" name="kode_group" id="kode_group" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500" placeholder="Contoh: MB-01">
+                        <p class="text-[10px] text-gray-500 mt-1">Gunakan ini untuk mengelompokkan mata kuliah teori dan praktikum pada penjadwalan</p>
+                    </div>
                 </div>
             </div>
 

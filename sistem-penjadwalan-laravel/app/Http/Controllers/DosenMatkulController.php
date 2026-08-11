@@ -81,34 +81,51 @@ class DosenMatkulController extends Controller
             $dosenId = $dosen->id;
         }
 
-        // Auto-Create Program Studi Umum jika dibutuhkan
+        // 1. Tentukan Default Prodi
         $defaultProdi = ProgramStudi::firstOrCreate(['nama' => 'Umum']);
+        $prodiIdToUse = $defaultProdi->id;
 
-        // Auto-Create Mata Kuliah jika input bukan ID numerik
+        // 2. LOGIKA KELAS: Cek apakah Kelas Auto-Create atau Sudah Ada
+        $kelasId = $request->kelas_id;
+        if (!is_numeric($kelasId)) {
+            // Deteksi Prodi dari nama kelas yang diketik
+            $allProdi = ProgramStudi::all();
+            foreach ($allProdi as $prodi) {
+                if ($prodi->kode && stripos($kelasId, $prodi->kode) !== false) {
+                    $prodiIdToUse = $prodi->id;
+                    break;
+                }
+            }
+
+            $kls = Kelas::firstOrCreate(
+                ['nama' => $kelasId, 'tahun_ajar_id' => $taId],
+                ['prodi_id' => $prodiIdToUse]
+            );
+            $kelasId = $kls->id;
+        } else {
+            // Kelas sudah ada, warisi prodi_id nya
+            $existingKelas = Kelas::find($kelasId);
+            if ($existingKelas && $existingKelas->prodi_id) {
+                $prodiIdToUse = $existingKelas->prodi_id;
+            }
+        }
+
+        // 3. LOGIKA MATA KULIAH: Gunakan Prodi dari Kelas
         $matkulId = $request->mata_kuliah_id;
         if (!is_numeric($matkulId)) {
             $sksTeori = (int) $request->input('sks_teori', 0);
             $sksPraktikum = (int) $request->input('sks_praktikum', 0);
 
             $matkul = MataKuliah::firstOrCreate(
-                ['nama' => $matkulId, 'prodi_id' => $defaultProdi->id],
+                ['nama' => $matkulId, 'prodi_id' => $prodiIdToUse],
                 [
                     'sks_teori' => $sksTeori,
                     'sks_praktikum' => $sksPraktikum,
                     'sks_total' => $sksTeori + $sksPraktikum,
-                    'kode_group' => null
+                    'kode_group' => $request->input('kode_group')
                 ]
             );
             $matkulId = $matkul->id;
-        }
-
-        // Auto-Create Kelas jika input bukan ID numerik
-        $kelasId = $request->kelas_id;
-        if (!is_numeric($kelasId)) {
-            $kls = Kelas::firstOrCreate(
-                ['nama' => $kelasId, 'prodi_id' => $defaultProdi->id, 'tahun_ajar_id' => $taId]
-            );
-            $kelasId = $kls->id;
         }
 
         // Simpan Relasi (Cek duplikasi agar tidak double insert)

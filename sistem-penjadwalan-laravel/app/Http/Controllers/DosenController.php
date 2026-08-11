@@ -34,35 +34,43 @@ class DosenController extends Controller
 
     public function create()
     {
-        return view('master-data.dosen.create');
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'asc')->get();
+
+        return view('master-data.dosen.create', compact('tahunAjars'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'kode_dosen' => 'required|unique:dosens,kode_dosen',
-            'nama'       => 'required',
-            'nip'       => 'nullable|string'
+            'kode_dosen'    => 'required|unique:dosens,kode_dosen',
+            'nama'          => 'required',
+            'nip'           => 'nullable|string',
+            'tahun_ajar_id' => 'required|exists:tahun_ajars,id',
         ]);
 
         Dosen::create($request->only(['kode_dosen', 'nama', 'nip', 'tahun_ajar_id']));
+
         return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil ditambahkan.');
     }
 
     public function edit(Dosen $dosen)
     {
-        return view('master-data.dosen.edit', compact('dosen'));
+        $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'asc')->get();
+
+        return view('master-data.dosen.edit', compact('dosen', 'tahunAjars'));
     }
 
     public function update(Request $request, Dosen $dosen)
     {
         $request->validate([
-            'kode_dosen' => 'required|unique:dosens,kode_dosen,' . $dosen->id,
-            'nama'       => 'required',
-            'nip'       => 'nullable|string'
+            'kode_dosen'    => 'required|unique:dosens,kode_dosen,' . $dosen->id,
+            'nama'          => 'required',
+            'nip'           => 'nullable|string',
+            'tahun_ajar_id' => 'required|exists:tahun_ajars,id',
         ]);
 
         $dosen->update($request->only(['kode_dosen', 'nama', 'nip', 'tahun_ajar_id']));
+
         return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil diperbarui.');
     }
 
