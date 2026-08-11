@@ -81,10 +81,10 @@
                                     <a href="{{ route('kelas.edit', $k->id) }}" class="text-blue-500 hover:text-blue-700 transition" title="Edit">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </a>
-                                    <form action="{{ route('kelas.destroy', $k->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Yakin ingin menghapus kelas ini?');">
+                                    <form action="{{ route('kelas.destroy', $k->id) }}" method="POST" class="inline-block delete-form">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="text-red-500 hover:text-red-700 transition" title="Hapus">
+                                        <button type="button" class="text-red-500 hover:text-red-700 transition btn-delete" title="Hapus">
                                             <i class="fa-solid fa-trash-can"></i>
                                         </button>
                                     </form>
@@ -108,3 +108,33 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteButtons = document.querySelectorAll('.btn-delete');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const form = this.closest('.delete-form');
+                
+                Swal.fire({
+                    title: 'Yakin hapus data ini?',
+                    text: 'Data yang dihapus tidak dapat dikembalikan.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#94a3b8',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    });
+</script>
+@endpush
