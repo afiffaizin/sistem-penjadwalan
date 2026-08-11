@@ -63,12 +63,30 @@
 
                 <div id="submenuMasterData" class="{{ request()->is('sekjur/master-data*') || request()->is('master-data*') || request()->is('kelas*','dosen*','prodi*','matkul*','ruang*') ? 'block' : 'hidden' }} mt-1 space-y-1 pl-12 pr-4 py-2">
                     
-                    <a href="{{ route('kelas.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('kelas.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Kelas</a>
-                    <a href="{{ route('dosen.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('dosen.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Dosen</a>
-                    <a href="{{ route('prodi.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('prodi.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Program Studi</a>
-                    <a href="{{ route('ruang.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('ruang.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Data Ruangan</a>
-                    <a href="{{ route('matkul.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Mata Kuliah</a>
-                    <a href="{{ route('dosen-matkul.index') }}" class="block py-2 text-sm font-medium transition {{ request()->routeIs('dosen-matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">Plotting Dosen</a>
+                    <a href="{{ route('kelas.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('kelas.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-users text-xs w-4 text-center"></i>
+                        <span>Data Kelas</span>
+                    </a>
+                    <a href="{{ route('dosen.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('dosen.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-chalkboard-user text-xs w-4 text-center"></i>
+                        <span>Data Dosen</span>
+                    </a>
+                    <a href="{{ route('prodi.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('prodi.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-graduation-cap text-xs w-4 text-center"></i>
+                        <span>Data Program Studi</span>
+                    </a>
+                    <a href="{{ route('ruang.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('ruang.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-door-open text-xs w-4 text-center"></i>
+                        <span>Data Ruangan</span>
+                    </a>
+                    <a href="{{ route('matkul.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-book text-xs w-4 text-center"></i>
+                        <span>Mata Kuliah</span>
+                    </a>
+                    <a href="{{ route('dosen-matkul.index') }}" class="flex items-center gap-2 py-2 text-sm font-medium transition {{ request()->routeIs('dosen-matkul.*') ? 'text-amber-600 font-bold' : 'text-gray-500 hover:text-amber-600' }}">
+                        <i class="fa-solid fa-link text-xs w-4 text-center"></i>
+                        <span>Plotting Dosen</span>
+                    </a>
                 </div>
             </div>
 
