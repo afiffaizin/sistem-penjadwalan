@@ -46,6 +46,7 @@ class DosenMatkulController extends Controller
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
         $dosens = Dosen::orderBy('nama', 'asc')->get();
         $matkuls = MataKuliah::orderBy('nama', 'asc')->get();
+        $prodis = ProgramStudi::orderBy('nama', 'asc')->get();
         
         $activeTa = TahunAjar::where('is_active', true)->first();
         $kelasQuery = Kelas::orderBy('nama', 'asc');
@@ -54,7 +55,7 @@ class DosenMatkulController extends Controller
         }
         $kelas = $kelasQuery->get();
 
-        return view('master-data.plotting.create', compact('tahunAjars', 'dosens', 'matkuls', 'kelas'));
+        return view('master-data.plotting.create', compact('tahunAjars', 'dosens', 'matkuls', 'kelas', 'prodis'));
     }
 
     public function store(Request $request)
@@ -75,7 +76,8 @@ class DosenMatkulController extends Controller
                 ['nama' => $dosenId],
                 [
                     'kode_dosen' => 'D-' . strtoupper(Str::random(5)),
-                    'nip' => null
+                    'nip' => null,
+                    'homebase_prodi_id' => $request->homebase_prodi_id ?: null
                 ]
             );
             $dosenId = $dosen->id;
@@ -144,6 +146,7 @@ class DosenMatkulController extends Controller
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
         $dosens = Dosen::orderBy('nama', 'asc')->get();
         $matkuls = MataKuliah::orderBy('nama', 'asc')->get();
+        $prodis = ProgramStudi::orderBy('nama', 'asc')->get();
         
         $activeTa = TahunAjar::where('is_active', true)->first();
         $kelasQuery = Kelas::orderBy('nama', 'asc');
@@ -152,7 +155,7 @@ class DosenMatkulController extends Controller
         }
         $kelas = $kelasQuery->get();
 
-        return view('master-data.plotting.edit', compact('dosen_matkul', 'tahunAjars', 'dosens', 'matkuls', 'kelas'));
+        return view('master-data.plotting.edit', compact('dosen_matkul', 'tahunAjars', 'dosens', 'matkuls', 'kelas', 'prodis'));
     }
 
     public function update(Request $request, DosenMatkul $dosen_matkul)
@@ -171,7 +174,11 @@ class DosenMatkulController extends Controller
         if (!is_numeric($dosenId)) {
             $dosen = Dosen::firstOrCreate(
                 ['nama' => $dosenId],
-                ['kode_dosen' => 'D-' . strtoupper(Str::random(5))]
+                [
+                    'kode_dosen' => 'D-' . strtoupper(Str::random(5)),
+                    'nip' => null,
+                    'homebase_prodi_id' => $request->homebase_prodi_id ?: null
+                ]
             );
             $dosenId = $dosen->id;
         }

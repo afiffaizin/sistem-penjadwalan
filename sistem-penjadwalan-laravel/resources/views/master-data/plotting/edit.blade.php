@@ -67,7 +67,7 @@
             <!-- Dosen -->
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">Dosen Pengampu <span class="text-red-500">*</span></label>
-                <select name="dosen_id" class="smart-select w-full" required data-placeholder="Ketik nama dosen...">
+                <select name="dosen_id" id="dosen_select" class="smart-select w-full" required data-placeholder="Ketik nama dosen...">
                     <option value=""></option>
                     @foreach($dosens as $dosen)
                         <option value="{{ $dosen->id }}" {{ $dosen_matkul->dosen_id == $dosen->id ? 'selected' : '' }}>
@@ -75,6 +75,20 @@
                         </option>
                     @endforeach
                 </select>
+            </div>
+
+            <!-- Input Dosen Tambahan (Disembunyikan secara default) -->
+            <div id="dosen_input_group" class="hidden bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <p class="text-sm font-bold text-amber-600 mb-3"><i class="fa-solid fa-circle-info"></i> Detail Dosen Baru</p>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Homebase (Prodi Asal)</label>
+                    <select name="homebase_prodi_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-amber-500 focus:ring-amber-500">
+                        <option value="">-- Tidak Ada / Kosong --</option>
+                        @foreach($prodis as $prodi)
+                            <option value="{{ $prodi->id }}">{{ $prodi->nama }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
             <!-- Mata Kuliah -->
@@ -149,6 +163,17 @@
                     text: term + ' (Buat Baru)',
                     newTag: true 
                 }
+            }
+        });
+
+        // Tampilkan input Homebase jika Dosen baru dibuat
+        $('#dosen_select').on('change', function() {
+            var val = $(this).val();
+            // Jika value bukan angka (bukan ID), berarti user mengetik nama baru
+            if (val && isNaN(val)) {
+                $('#dosen_input_group').slideDown();
+            } else {
+                $('#dosen_input_group').slideUp();
             }
         });
 
