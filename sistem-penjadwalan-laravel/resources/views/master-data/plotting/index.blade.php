@@ -70,7 +70,7 @@
                             <td class="px-6 py-4 text-center text-sm text-gray-500">{{ $plottings->firstItem() + $index }}</td>
                             <td class="px-6 py-4">
                                 <span class="font-bold text-gray-800 block">{{ $p->dosen->nama ?? '-' }}</span>
-                                <span class="text-xs text-gray-500">NIP/Kode: {{ $p->dosen->nip ?? $p->dosen->kode_dosen ?? '-' }}</span>
+                                <span class="text-xs text-gray-500">NIP/Kode: {{ $p->dosen->nip ?: ($p->dosen->kode_dosen ?: '-') }}</span>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="font-bold text-amber-600 block">{{ $p->mata_kuliah->nama ?? '-' }}</span>

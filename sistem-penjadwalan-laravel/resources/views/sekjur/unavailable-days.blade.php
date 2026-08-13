@@ -78,7 +78,7 @@
                             <td class="px-6 py-4 text-gray-600">{{ $requestItem->prodi->nama ?? '-' }}</td>
                             <td class="px-6 py-4">
                                 <div class="font-black text-gray-800">{{ $requestItem->dosen->nama ?? '-' }}</div>
-                                <div class="text-xs text-gray-400 font-semibold">{{ $requestItem->dosen->nip ?? $requestItem->dosen->kode_dosen ?? '-' }}</div>
+                                <div class="text-xs text-gray-400 font-semibold">{{ $requestItem->dosen->nip ?: ($requestItem->dosen->kode_dosen ?: '-') }}</div>
                             </td>
                             <td class="px-6 py-4 text-gray-600">
                                 {{ $requestItem->tahunAjar->tahun ?? '-' }} - {{ $requestItem->tahunAjar->semester ?? '-' }}
