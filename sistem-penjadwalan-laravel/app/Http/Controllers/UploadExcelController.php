@@ -154,6 +154,13 @@ class UploadExcelController extends Controller
             foreach ($data['pengampu'] as $p) {
                 $prodi = ProgramStudi::firstOrCreate(['nama' => $p['prodi']]);
 
+                $homebaseName = $p['homebase'] ?? null;
+                $homebaseProdiId = null;
+                if (!empty($homebaseName)) {
+                    $homebaseProdi = ProgramStudi::firstOrCreate(['nama' => $homebaseName]);
+                    $homebaseProdiId = $homebaseProdi->id;
+                }
+
                 $dosen = Dosen::firstOrCreate(
                     ['nama' => $p['nama_dosen'], 'tahun_ajar_id' => $taId],
                     [
@@ -161,6 +168,10 @@ class UploadExcelController extends Controller
                         'nip'       => $p['nip'] ?? null
                     ]
                 );
+
+                if ($homebaseProdiId && $dosen->homebase_prodi_id !== $homebaseProdiId) {
+                    $dosen->update(['homebase_prodi_id' => $homebaseProdiId]);
+                }
 
                 $dosen->prodis()->syncWithoutDetaching([$prodi->id]);
 

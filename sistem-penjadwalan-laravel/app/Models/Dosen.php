@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Dosen extends Model
 {
-    protected $fillable = ['kode_dosen', 'nama', 'nip', 'tahun_ajar_id'];
+    protected $fillable = ['kode_dosen', 'nama', 'nip', 'tahun_ajar_id', 'homebase_prodi_id'];
 
     public function prodis()
     {
         return $this->belongsToMany(ProgramStudi::class, 'dosen_prodi', 'dosen_id', 'prodi_id');
+    }
+
+    public function homebaseProdi(): BelongsTo
+    {
+        return $this->belongsTo(ProgramStudi::class, 'homebase_prodi_id');
     }
 
     public function tahunAjar(): BelongsTo

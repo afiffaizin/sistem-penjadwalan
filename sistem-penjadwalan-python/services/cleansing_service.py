@@ -26,8 +26,9 @@ def cleanse_ploting(xls):
     
     for sheet_name in xls.sheet_names:
         df = pd.read_excel(xls, sheet_name=sheet_name)
+        df.columns = [str(c).strip() for c in df.columns]
         # Inisialisasi status dosen
-        current_kode_dosen, current_dosen, current_mk, current_nip = None, None, None, None
+        current_kode_dosen, current_dosen, current_mk, current_nip, current_homebase = None, None, None, None, None
 
         for _, row in df.iterrows():
             kode_mk_col = str(row.get("Kode MK", ""))
@@ -37,6 +38,9 @@ def cleanse_ploting(xls):
             if pd.notna(row.get("Kode MK")) and "," in kode_mk_col and ("S.Kom" in kode_mk_col or "S.T" in kode_mk_col or "M." in kode_mk_col):
                 current_dosen = kode_mk_col.strip()
                 current_kode_dosen = kd_col.strip() if kd_col.lower() != 'nan' and kd_col != '' else None
+                current_homebase = str(row.get("Homebase", "")).strip() if "Homebase" in df.columns else None
+                if current_homebase and current_homebase.lower() == 'nan':
+                    current_homebase = None
                 current_mk = None
                 current_nip = None 
                 continue
@@ -73,7 +77,8 @@ def cleanse_ploting(xls):
                     "nama_dosen": current_dosen,
                     "nama_mk": current_mk,
                     "kelas": kelas_bersih,
-                    "prodi": prodi.strip() if prodi.lower() != 'nan' else ""
+                    "prodi": prodi.strip() if prodi.lower() != 'nan' else "",
+                    "homebase": current_homebase if current_homebase else ""
                 })
 
     df_clean = pd.DataFrame(all_records).drop_duplicates()
@@ -151,7 +156,8 @@ def merge_matkul_ploting(ploting_df, matkul_df):
             "sks_praktikum",
             "kelas",
             "prodi",
-            "kode_group"
+            "kode_group",
+            "homebase"
         ]
     ]
 

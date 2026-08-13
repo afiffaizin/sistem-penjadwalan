@@ -131,9 +131,7 @@ class KaprodiController extends Controller
         
         $selectedTahunAjarId = $request->input('tahun_ajar_id', $defaultTahunAjarId);
 
-        $dosens = Dosen::whereHas('prodis', function ($query) use ($user) {
-                $query->where('program_studis.id', $user->prodi_id);
-            })
+        $dosens = Dosen::where('homebase_prodi_id', $user->prodi_id)
             ->orderBy('nama')
             ->get();
 
@@ -178,9 +176,7 @@ class KaprodiController extends Controller
 
         $tahunAjarId = $validated['tahun_ajar_id'];
         $hariByDosen = $validated['hari'] ?? [];
-        $allowedDosenIds = Dosen::whereHas('prodis', function ($query) use ($user) {
-                $query->where('program_studis.id', $user->prodi_id);
-            })
+        $allowedDosenIds = Dosen::where('homebase_prodi_id', $user->prodi_id)
             ->pluck('id')
             ->toArray();
 
@@ -228,8 +224,8 @@ class KaprodiController extends Controller
             ->when($request->filled('prodi_id'), function ($query) use ($request) {
                 $query->where(function ($q) use ($request) {
                     $q->where('prodi_id', $request->prodi_id)
-                      ->orWhereHas('dosen.prodis', function ($q2) use ($request) {
-                          $q2->where('program_studis.id', $request->prodi_id);
+                      ->orWhereHas('dosen', function ($q2) use ($request) {
+                          $q2->where('homebase_prodi_id', $request->prodi_id);
                       });
                 });
             })

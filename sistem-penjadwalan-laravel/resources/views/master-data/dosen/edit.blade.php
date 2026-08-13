@@ -40,6 +40,19 @@
                 @error('tahun_ajar_id') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
             </div>
 
+            <div class="mb-8">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Homebase (Prodi Asal)</label>
+                <select name="homebase_prodi_id" class="w-full border border-gray-300 rounded-lg shadow-sm focus:border-amber-500 focus:ring-amber-500 px-4 py-2.5 outline-none transition bg-white @error('homebase_prodi_id') border-red-500 @enderror">
+                    <option value="">-- Tidak Ada / Kosong --</option>
+                    @foreach($prodis as $prodi)
+                        <option value="{{ $prodi->id }}" {{ old('homebase_prodi_id', $dosen->homebase_prodi_id) == $prodi->id ? 'selected' : '' }}>
+                            {{ $prodi->nama }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('homebase_prodi_id') <p class="text-red-500 text-xs mt-1 font-medium">{{ $message }}</p> @enderror
+            </div>
+
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
                 <a href="{{ route('dosen.index') }}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-bold transition">Batal</a>
                 <button type="submit" class="px-5 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 font-bold shadow-md transition">Update Dosen</button>
