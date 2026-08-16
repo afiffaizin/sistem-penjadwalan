@@ -24,14 +24,12 @@ class JadwalViewService
     public function build(Request $request): array
     {
         $daftarTahunAjar = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
-        $targetTahunAjarId = $request->filled('tahun_ajar_id')
-            ? $request->tahun_ajar_id
-            : TahunAjar::where('is_active', true)->value('id');
+        $targetTahunAjarId = $request->input('tahun_ajar_id');
         $activeTahunAjarIds = $targetTahunAjarId ? [$targetTahunAjarId] : [];
 
         $matrixJadwal = self::emptyMatrix();
         $matkulMandiri = collect();
-        $jadwalDicari = $request->has('tahun_ajar_id') || $request->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id']);
+        $jadwalDicari = !empty($targetTahunAjarId);
 
         if (!empty($activeTahunAjarIds) && $jadwalDicari) {
             $query = Jadwal::with(['mata_kuliah', 'dosen', 'kelas', 'ruang'])
@@ -76,12 +74,9 @@ class JadwalViewService
     public function buildPublic(Request $request): array
     {
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
-        $latestJadwalTaId = Jadwal::latest('created_at')->value('tahun_ajar_id');
-        $activeTahunAjar = TahunAjar::where('is_active', true)->first();
-        $defaultTahunAjarId = $latestJadwalTaId ?? $activeTahunAjar?->id;
-        $selectedTahunAjarId = $request->input('tahun_ajar_id', $defaultTahunAjarId);
+        $selectedTahunAjarId = $request->input('tahun_ajar_id');
         
-        $activeTahunAjarIds = $selectedTahunAjarId ? [$selectedTahunAjarId] : TahunAjar::where('is_active', true)->pluck('id')->toArray();
+        $activeTahunAjarIds = $selectedTahunAjarId ? [$selectedTahunAjarId] : [];
 
         $dosenIds = Jadwal::whereIn('tahun_ajar_id', $activeTahunAjarIds)->distinct()->pluck('dosen_id');
         $dosens = Dosen::whereIn('id', $dosenIds)->orderBy('nama')->get();
@@ -125,15 +120,14 @@ class JadwalViewService
     public function buildForProdi(Request $request, int $prodiId): array
     {
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
-
-        $latestJadwalTaId = Jadwal::latest('created_at')->value('tahun_ajar_id');
-        $activeTahunAjar = TahunAjar::where('is_active', true)->first();
-        $defaultTahunAjarId = $latestJadwalTaId ?? $activeTahunAjar?->id;
-        $selectedTahunAjarId = $request->input('tahun_ajar_id', $defaultTahunAjarId);
+        $selectedTahunAjarId = $request->input('tahun_ajar_id');
 
         $kelasQuery = Kelas::where('prodi_id', $prodiId);
         if ($selectedTahunAjarId) {
             $kelasQuery->where('tahun_ajar_id', $selectedTahunAjarId);
+        } else {
+            // Jika tidak ada tahun ajar yang dipilih, tidak usah query kelas (mencegah dobel)
+            $kelasQuery->where('id', -1);
         }
         $kelas = $kelasQuery->orderBy('nama')->get();
         $kelasIds = $kelas->pluck('id')->toArray();
@@ -141,8 +135,6 @@ class JadwalViewService
         $dosenQuery = Jadwal::whereIn('kelas_id', $kelasIds);
         if ($selectedTahunAjarId) {
             $dosenQuery->where('tahun_ajar_id', $selectedTahunAjarId);
-        } else {
-            $dosenQuery->whereIn('tahun_ajar_id', TahunAjar::where('is_active', true)->pluck('id')->toArray());
         }
         $dosenIds = $dosenQuery->distinct()->pluck('dosen_id');
 
@@ -156,8 +148,6 @@ class JadwalViewService
 
         if ($selectedTahunAjarId) {
             $query->where('tahun_ajar_id', $selectedTahunAjarId);
-        } else {
-            $query->whereIn('tahun_ajar_id', TahunAjar::where('is_active', true)->pluck('id')->toArray());
         }
 
         if ($request->filled('dosen_id')) $query->where('dosen_id', $request->dosen_id);
