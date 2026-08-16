@@ -216,8 +216,8 @@
                 <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-50 mb-5 border-4 border-amber-100">
                     <i class="fa-solid fa-calendar-days text-3xl text-amber-500"></i>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Pilih Tahun Ajaran</h3>
-                <p class="text-gray-500 text-sm max-w-md mx-auto">Silakan pilih tahun ajaran melalui dropdown di atas, lalu klik "Tampilkan Jadwal".</p>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Pilih Filter Jadwal</h3>
+                <p class="text-gray-500 text-sm max-w-md mx-auto">Silakan pilih spesifikasi pencarian melalui dropdown di atas, lalu klik "Tampilkan Jadwal".</p>
             </div>
         @endif
     </div>
