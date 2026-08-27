@@ -489,7 +489,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
                 "sesi_mulai": s + 1,           # 1-indexed for Laravel
                 "sesi_selesai": s + t['durasi'],  # inclusive
             })
-        return {"status_solver": "SUKSES", "pesan": "Berhasil", "data": hasil}
+        return {"status": "success", "status_solver": "SUKSES", "pesan": "Berhasil", "data": hasil}
     else:
         status_name = solver.StatusName(status)
         if status == cp_model.INFEASIBLE:
@@ -520,6 +520,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
             recommendation = "Silakan coba lagi. Jika masalah berlanjut, hubungi administrator sistem."
 
         return {
+            "status": "error",
             "status_solver": "GAGAL",
             "pesan": pesan,
             "data": [],

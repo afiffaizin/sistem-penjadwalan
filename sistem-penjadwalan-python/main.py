@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Request
+from fastapi import FastAPI, UploadFile, File, Request, Body
 from fastapi.responses import JSONResponse
 import asyncio
 import traceback
@@ -39,11 +39,10 @@ async def api_cleansing(
 
 # ENDPOINT 2: GENERATE JADWAL (OR-TOOLS)
 @app.post("/api/generate-jadwal")
-async def api_generate_jadwal(request: Request):
+async def api_generate_jadwal(request_data: dict = Body(...)):
     try:
         print("\n1. REQUEST GENERATE JADWAL MASUK!")
         
-        request_data = await request.json()
         print(" 2. DATA JSON BERHASIL DITANGKAP ")
 
         data_pengampu = request_data.get("pengampu", [])
