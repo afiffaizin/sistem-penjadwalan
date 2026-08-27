@@ -35,8 +35,9 @@ class DosenController extends Controller
     public function create()
     {
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'asc')->get();
+        $prodis = \App\Models\ProgramStudi::orderBy('nama')->get();
 
-        return view('master-data.dosen.create', compact('tahunAjars'));
+        return view('master-data.dosen.create', compact('tahunAjars', 'prodis'));
     }
 
     public function store(Request $request)
@@ -46,9 +47,10 @@ class DosenController extends Controller
             'nama'          => 'required',
             'nip'           => 'nullable|string',
             'tahun_ajar_id' => 'required|exists:tahun_ajars,id',
+            'homebase_prodi_id' => 'nullable|exists:program_studis,id',
         ]);
 
-        Dosen::create($request->only(['kode_dosen', 'nama', 'nip', 'tahun_ajar_id']));
+        Dosen::create($request->only(['kode_dosen', 'nama', 'nip', 'tahun_ajar_id', 'homebase_prodi_id']));
 
         return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil ditambahkan.');
     }
@@ -56,8 +58,9 @@ class DosenController extends Controller
     public function edit(Dosen $dosen)
     {
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'asc')->get();
+        $prodis = \App\Models\ProgramStudi::orderBy('nama')->get();
 
-        return view('master-data.dosen.edit', compact('dosen', 'tahunAjars'));
+        return view('master-data.dosen.edit', compact('dosen', 'tahunAjars', 'prodis'));
     }
 
     public function update(Request $request, Dosen $dosen)
@@ -67,9 +70,10 @@ class DosenController extends Controller
             'nama'          => 'required',
             'nip'           => 'nullable|string',
             'tahun_ajar_id' => 'required|exists:tahun_ajars,id',
+            'homebase_prodi_id' => 'nullable|exists:program_studis,id',
         ]);
 
-        $dosen->update($request->only(['kode_dosen', 'nama', 'nip', 'tahun_ajar_id']));
+        $dosen->update($request->only(['kode_dosen', 'nama', 'nip', 'tahun_ajar_id', 'homebase_prodi_id']));
 
         return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil diperbarui.');
     }

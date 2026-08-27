@@ -21,7 +21,7 @@ FROM php:8.3-apache-bookworm
 # System deps for PHP extensions
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev libjpeg-dev libfreetype6-dev libzip-dev libonig-dev \
-    libxml2-dev unzip curl default-mysql-client \
+    libxml2-dev unzip curl default-mysql-client dos2unix \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql mbstring xml zip gd bcmath opcache \
     && a2enmod rewrite headers \
@@ -54,11 +54,11 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 
 # Entrypoint
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN dos2unix /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
 # Queue worker entrypoint (used by queue-worker service)
 COPY queue-worker-entrypoint.sh /var/www/html/queue-worker-entrypoint.sh
-RUN chmod +x /var/www/html/queue-worker-entrypoint.sh
+RUN dos2unix /var/www/html/queue-worker-entrypoint.sh && chmod +x /var/www/html/queue-worker-entrypoint.sh
 
 EXPOSE 80
 

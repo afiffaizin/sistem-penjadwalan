@@ -55,6 +55,7 @@
                             <select name="tahun_ajar_id"
                                 onchange="document.getElementById('kelas_id_filter').value=''; this.form.submit()"
                                 class="w-full border border-gray-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500 text-sm bg-white font-semibold text-black shadow-sm cursor-pointer">
+                                <option value="">-- Pilih Tahun Ajaran --</option>
                                 @foreach ($daftarTahunAjar as $ta)
                                     <option value="{{ $ta->id }}"
                                         {{ $targetTahunAjarId == $ta->id ? 'selected' : '' }}>

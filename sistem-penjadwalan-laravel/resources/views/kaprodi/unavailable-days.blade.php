@@ -70,7 +70,7 @@
                         <tr class="hover:bg-amber-50/40 transition">
                             <td class="px-6 py-4">
                                 <div class="font-black text-gray-800">{{ $dosen->nama }}</div>
-                                <div class="text-xs text-gray-400 font-semibold">{{ $dosen->nip ?? $dosen->kode_dosen ?? '-' }}</div>
+                                <div class="text-xs text-gray-400 font-semibold">{{ $dosen->nip ?: ($dosen->kode_dosen ?: '-') }}</div>
                             </td>
                             @foreach($hariKerja as $hari)
                                 <td class="px-6 py-4 text-center">
