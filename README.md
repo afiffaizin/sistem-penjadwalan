@@ -4,14 +4,11 @@
 
 ### [Tagline Singkat dan Menarik]
 
-[![Live
-Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_Site-success?style=for-the-badge)]
-(https://[sisjadwal.afiefnoer.my.id/])
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_Site-success?style=for-the-badge)](https://[sisjadwal.afiefnoer.my.id/])
 
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&log
-o=github)](https://[github.com/afiffaizin/sistem-penjadwalan.git])
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://[github.com/afiffaizin/sistem-penjadwalan.git])
 
-[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-bluestyle=for-the-badge)](LICENSE)
 
 **Submission for ITECHNO CUP 2026 - Web Development**
 
@@ -49,21 +46,33 @@ o=github)](https://[github.com/afiffaizin/sistem-penjadwalan.git])
 
 ### Latar Belakang
 
-Penjadwalan perkuliahan adalah proses administratif yang harus mengakomodasi dosen, mata kuliah, kelas, ruang, dan waktu secara bersamaan tanpa menimbulkan konflik. Di Jurusan Komputer dan Bisnis Politeknik Negeri Cilacap, proses ini melibatkan 5 program studi, 56 dosen, dan 60 mata kuliah per semester, dengan 25 ruang perkuliahan yang dipakai bersama. Sebagian ruang erutama laboratorium praktikum hanya bisa digunakan oleh program studi tertentu, sehingga penjadwalan harus mempertimbangkan kesesuaian antara mata kuliah, program studi, dan ketersediaan fasilitas.
+Penjadwalan perkuliahan adalah proses administratif yang harus mengakomodasi dosen, mata kuliah, kelas, ruang, dan waktu secara bersamaan tanpa menimbulkan konflik. Kompleksitas ini meningkat pada institusi pendidikan yang memiliki banyak program studi dan ruang yang dipakai bersama lintas program studi. Sebagai konteks implementasi awal, sistem ini dikembangkan berdasarkan studi kasus pada sebuah jurusan dengan 5 program studi, 56 dosen, dan 60 mata kuliah per semester, dengan 25 ruang perkuliahan yang dipakai bersama. Sebagian ruang terutama laboratorium praktikum hanya bisa digunakan oleh program studi tertentu, sehingga penjadwalan harus mempertimbangkan kesesuaian antara mata kuliah, program studi, dan ketersediaan fasilitas. Pola kebutuhan seperti ini umum ditemukan pada institusi pendidikan dengan struktur jurusan/program studi serupa.
 
-Saat ini proses penyusunan jadwal masih dilakukan secara konvensional: pengelola akademik memeriksa ketersediaan ruang, lalu menyesuaikannya secara manual dengan tugas mengajar masing-masing dosen. Hasilnya dibagikan dalam satu dokumen kepada dosen dan mahasiswa. Cara ini memakan waktu lama dan rentan menimbulkan kesalahan bila tidak diperiksa secara menyeluruh, termasuk konflik jadwal dosen, konflik penggunaan ruang, dan bentrok jadwal mahasiswa.
+Pada umumnya, proses penyusunan jadwal di institusi semacam ini masih dilakukan secara konvensional: pengelola akademik memeriksa ketersediaan ruang, lalu menyesuaikannya secara manual dengan tugas mengajar masing-masing dosen. Hasilnya dibagikan dalam satu dokumen kepada dosen dan mahasiswa. Cara ini memakan waktu lama dan rentan menimbulkan kesalahan bila tidak diperiksa secara menyeluruh, termasuk konflik jadwal dosen, konflik penggunaan ruang, dan bentrok jadwal mahasiswa.
 
 Kompleksitas bertambah ketika ada permintaan khusus dari dosen, misalnya ketersediaan mengajar yang terbatas pada hari tertentu, yang tetap harus dipenuhi tanpa mengganggu jadwal dosen lain, kelas, atau ruang. Dalam proses manual, hal ini sering memerlukan penyesuaian berulang sehingga berpotensi menimbulkan inkonsistensi dan memperpanjang waktu penyusunan jadwal.
 
 Masalah lain terletak pada keterbatasan cara penyajian jadwal: hasil penjadwalan yang ada belum bisa ditampilkan secara fleksibel sesuai kebutuhan pengguna, padahal jadwal idealnya dapat diakses dari berbagai sudut pandang, per dosen, kelas, ruang, maupun program studi.
 
-Berdasarkan permasalahan tersebut, dikembangkan sistem penjadwalan perkuliahan terkomputerisasi untuk menyusun jadwal secara lebih terstruktur dan meminimalkan konflik. Pengembangan pada tahap ini difokuskan pada constraint utama, konflik dosen, konflik penggunaan ruang, dan keterbatasan ruang, sementara akomodasi preferensi waktu mengajar dosen menjadi bagian pengembangan lanjutan di luar cakupan sistem saat ini.
+Berdasarkan permasalahan tersebut, dikembangkan sistem penjadwalan perkuliahan terkomputerisasi untuk menyusun jadwal secara lebih terstruktur dan meminimalkan konflik, yang dirancang agar dapat diadaptasi pada institusi pendidikan lain dengan kebutuhan penjadwalan serupa. Pengembangan pada tahap ini difokuskan pada constraint utama, konflik dosen, konflik penggunaan ruang, dan keterbatasan ruang, sementara akomodasi preferensi waktu mengajar dosen menjadi bagian pengembangan lanjutan di luar cakupan sistem saat ini.
 
 ### Solusi yang Ditawarkan
 
 Sistem ini menyelesaikan masalah penjadwalan dengan pendekatan Constraint Programming (CP): aturan-aturan yang wajib dipenuhi (constraint) didefinisikan terlebih dahulu, lalu sistem mencari kombinasi jadwal yang memenuhi seluruh aturan tersebut secara otomatis, alih-alih disusun manual satu per satu.
 
-Secara teknis, sekretaris jurusan mengunggah data master (dosen, mata kuliah beserta SKS, dan ketersediaan ruang) dalam format Excel. Data ini melewati proses pembersihan (data cleansing) untuk mendeteksi ketidaksesuaian atau duplikasi sebelum diproses lebih lanjut. Perhitungan jadwal dijalankan oleh mesin penjadwalan (scheduling engine) berbasis Google OR-Tools dengan solver CP-SAT, bekerja di balik dashboard Laravel. Enam hard constraint diterapkan pada proses ini: setiap mata kuliah dijadwalkan tepat satu kali, SKS berjalan kontinu, tidak ada bentrok ruang, tidak ada bentrok dosen, tidak ada bentrok kelas mahasiswa, dan slot istirahat Jumat dikosongkan.
+Secara teknis, sekretaris jurusan mengunggah data master (dosen, mata kuliah beserta SKS, dan ketersediaan ruang) dalam format Excel. Data ini melewati proses pembersihan (data cleansing) untuk mendeteksi ketidaksesuaian atau duplikasi sebelum diproses lebih lanjut. Perhitungan jadwal dijalankan oleh mesin penjadwalan (scheduling engine) berbasis Google OR-Tools dengan solver CP-SAT.
+Delapan hard constraint diterapkan pada proses ini:
+
+- **Dosen tidak bentrok** - satu dosen tidak bisa mengajar di dua tempat dalam waktu bersamaan.
+- **Kelas tidak bentrok** - satu rombongan belajar tidak bisa mengikuti dua mata kuliah sekaligus.
+- **Ruangan tidak bentrok** - satu ruangan tidak bisa dipakai dua kelas sekaligus.
+- **Shalat Jumat** - sesi ke-5 pada hari Jumat wajib dikosongkan.
+- **Cuti/libur dosen** - dosen tidak dijadwalkan pada hari yang tidak bisa mengajar.
+- **Urutan sesi** - sesi teori wajib mendahului sesi praktikum, untuk dosen maupun grup mata kuliah yang sama.
+- **Kategori ruangan** - mata kuliah teori dan praktikum wajib ditempatkan pada tipe ruangan yang sesuai.
+- **Ruangan spesifik** - bila diatur, mata kuliah tertentu hanya bisa dijadwalkan pada ruangan yang telah ditunjuk.
+
+Selain kedelapan hard constraint tersebut, sistem juga menerapkan satu preferensi berbasis penalti (soft constraint) untuk penempatan ruang praktikum: solver mengutamakan ruangan sesuai program studi pengampu mata kuliah, dan baru mempertimbangkan ruangan lintas program studi bila tidak ada pilihan yang lebih sesuai
 
 Dibanding proses manual, pendekatan ini mengganti pengecekan satu per satu oleh pengelola akademik dengan pencarian kombinasi otomatis yang mempertimbangkan seluruh constraint sekaligus, sehingga potensi konflik jadwal dapat ditekan tanpa memerlukan penyesuaian berulang.
 
@@ -71,13 +80,13 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
 
 ### Tujuan Proyek
 
-- 🎯 **Tujuan Utama**: Menyediakan sistem penjadwalan perkuliahan berbasis web bagi Jurusan Komputer dan Bisnis Politeknik Negeri Cilacap yang mampu menghasilkan jadwal kuliah bebas konflik secara otomatis menggunakan Constraint Programming, sekaligus menyajikan hasil jadwal dari berbagai sudut pandang agar lebih mudah diakses oleh seluruh pengguna.
+- 🎯 **Tujuan Utama**: Menyediakan sistem penjadwalan perkuliahan berbasis web yang mampu menghasilkan jadwal kuliah bebas konflik secara otomatis menggunakan Constraint Programming, sekaligus menyajikan hasil jadwal dari berbagai sudut pandang agar lebih mudah diakses oleh seluruh pengguna, dirancang agar konsep dan mekanismenya dapat diadaptasi oleh institusi pendidikan lain dengan struktur
 - 📊 **Target Pengguna**:
   - **Sekretaris Jurusan**, mengelola data master, mengunggah dan memvalidasi data, menjalankan proses generate jadwal, serta mengelola data jadwal yang dihasilkan.
   - **Kepala Jurusan (Kajur)**, memantau dashboard statistik jurusan dan seluruh jadwal perkuliahan, serta mengunduh jadwal.
   - **Koordinator Program Studi (Kaprodi)**, memantau dashboard statistik dan jadwal perkuliahan pada program studinya masing-masing.
   - **Dosen dan Mahasiswa**, mengakses jadwal melalui landing page dengan filter mata kuliah, ruang, waktu, dan kelas, serta mengunduh jadwal dalam format PDF.
-- 💡 **Value Proposition**: Dibanding proses manual yang bergantung pada pengecekan visual satu per satu, sistem ini menjalankan pencarian kombinasi jadwal berbasis constraint yang memeriksa seluruh aturan (bentrok dosen, ruang, dan kelas) secara bersamaan, sehingga jadwal yang dihasilkan bebas konflik tanpa memerlukan penyesuaian berulang. Sistem juga menyajikan jadwal dari berbagai sudut pandang dengan hak akses yang dipisahkan sesuai peran, sehingga masing-masing pengguna dapat mengakses informasi jadwal yang relevan tanpa harus menyaring satu dokumen tunggal secara manual.
+- 💡 **Value Proposition**: Dibanding proses manual yang bergantung pada pengecekan visual satu per satu, sistem ini menjalankan pencarian kombinasi jadwal berbasis constraint yang memeriksa seluruh aturan (bentrok dosen, ruang, dan kelas) secara bersamaan, sehingga jadwal yang dihasilkan bebas konflik tanpa memerlukan penyesuaian berulang. Sistem juga menyajikan jadwal dari berbagai sudut pandang dengan hak akses yang dipisahkan sesuai peran, sehingga masing-masing pengguna dapat mengakses informasi jadwal yang relevan tanpa harus menyaring satu dokumen tunggal secara manual. Model constraint yang digunakan berbasis pada aturan-aturan penjadwalan yang umum berlaku di institusi pendidikan berstruktur jurusan/program studi, sehingga secara konseptual dapat disesuaikan untuk konteks institusi lain.
 
 ---
 
@@ -101,7 +110,7 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
 - **Ubah/Tukar Jadwal** - Pada halaman Hasil Jadwal, Sekretaris Jurusan dapat mengubah atau menukar jadwal secara langsung, dengan sistem tetap mempertimbangkan potensi konflik terhadap jadwal lain saat perubahan dilakukan.
 - **Manajemen User** - Sekretaris Jurusan dapat menambah, mengedit, dan menghapus akun Kepala Jurusan serta Koordinator Program Studi, termasuk mengatur nama, username, email, password awal, dan jabatan/role.
 - **Dashboard Statistik Akademik** - Sekretaris Jurusan, Kepala Jurusan, dan Koordinator Program Studi masing-masing memperoleh ringkasan data akademik berupa kartu indikator dan grafik, distribusi tipe mata kuliah (teori/praktikum/campuran), distribusi beban SKS per program studi, peringkat 5 dosen dengan beban SKS tertinggi, serta kepadatan jadwal per hari, dengan cakupan data yang disesuaikan pada level kewenangan masing-masing role.
-- **Request Kaprodi** -
+- **Request Hari Tidak Bisa Mengajar** - Permintaan ini mencakup kondisi di mana dosen menentukan batasan hari atau jam tertentu di mana mereka tidak bersedia/tidak bisa mengajar, termasuk penyesuaian untuk dosen yang memiliki izin khusus atau jadwal Work From Home (WFH).
 
 ---
 
@@ -109,7 +118,7 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
 
 ### Live Demo
 
-🔗 **[Kunjungi Website](https://[URL_DEMO])**
+🔗 **[Kunjungi Website](https://[sisjadwal.afiefnoer.my.id/)**
 
 ### Screenshot Aplikasi
 
@@ -139,7 +148,7 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
  <p><em>Halaman Hasil Jadwal [Sekretaris Jurusan] - halaman untuk melihat, menyaring, mengubah/menukar, serta mengunduh hasil jadwal perkuliahan yang telah berhasil dibuat sistem dalam format Excel maupun PDF.</em></p>
 
  <img src="docs/images/sekjur-request kaprodi.png" alt="Halaman Request Kaprodi" width="800"/>
- <p><em>Halaman Request Kaprodi [Sekretaris Jurusan] -</em></p>
+ <p><em>Halaman Request Kaprodi [Sekretaris Jurusan] - Halaman monitoring request Dosen tidak bersedia/tidak bisa mengajar yang akan dipakai saat generate jadwal.</em></p>
 
  <img src="docs/images/sekjur-MD-kelas.png" alt="Halaman Master Data Kelas" width="800"/>
  <p><em>Halaman Master Data Kelas [Sekretaris Jurusan] - Halaman untuk menambah, mengedit, dan menghapus data kelas, dilengkapi fitur pencarian berdasarkan nama kelas dan filter berdasarkan tahun akademik. </em></p>
@@ -181,7 +190,7 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
  <p><em>Halaman Monitoring Jadwal [Koordinator Program Studi] - halaman bagi Koordinator Program Studi untuk meninjau matriks jadwal perkuliahan khusus pada program studi yang diampunya.</em></p>
 
  <img src="docs/images/kaproditi-htbm.png" alt="Halaman Hari Tidak Bisa Mengajar" width="800"/>
- <p><em>Halaman Hari Tidak Bisa Mengajar [Koordinator Program Studi] - </em></p>
+ <p><em>Halaman Hari Tidak Bisa Mengajar [Koordinator Program Studi] - Atur request hari tidak bisa mengajar untuk dosen di masing masing Program Studi. Perubahan pada dosen yang mengajar di beberapa prodi akan berlaku secara global.</em></p>
 
 </div>
 
@@ -226,15 +235,15 @@ Monitoring : Laravel Default Logs
 
 ### Alasan Pemilihan Teknologi
 
-| Teknologi                    | Alasan Pemilihan                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Google OR-Tools (CP-SAT)** | Constraint Programming dipilih karena mampu menangani berbagai jenis batasan sekaligu,konflik jadwal dosen, konflik penggunaan ruang, dan keterbatasan ruang laboratoriu,cukup dengan mendeklarasikan aturan satu kali, solver akan otomatis mencari kombinasi jadwal yang memenuhi seluruh batasan tanpa pengecekan manual berulang. Solver CP-SAT digunakan sebagai mesin pencari solusi ini pada proses Auto-Generate Jadwal, dijalankan di backend Python setelah data divalidasi. |
-| **Laravel 12**               | Dipilih sebagai backbone aplikasi web karena arsitektur MVC-nya memisahkan pengelolaan data, logika bisnis, dan tampilan secara terstruktur. Eloquent ORM digunakan untuk mengelola data akademik (dosen, mata kuliah, ruangan, kelas), Blade untuk menyusun dashboard multi-role, serta middleware autentikasi dan proteksi bawaan terhadap SQL Injection, CSRF, dan XSS yang relevan untuk sistem dengan banyak tingkat hak akses (Sekjur, Kajur, Kaprodi).                          |
-| **FastAPI**                  | Dalam implementasinya, FastAPI digunakan sebagai layer backend Python terpisah yang menjalankan scheduling engine berbasis OR-Tools CP-SAT, berkomunikasi dengan aplikasi Laravel melalui REST API dan basis data MySQL yang dipakai bersama. Pemisahan ini menjaga proses komputasi penjadwalan yang berat tetap terpisah dari logika aplikasi web utama.                                                                                                                             |
-| **MySQL 8.0**                | Digunakan sebagai basis data relasional yang menyimpan seluruh data akademik (dosen, mata kuliah, ruangan, kelas, program studi) beserta hasil jadwal, dengan mekanisme Primary Key–Foreign Key yang menjaga relasi antar entitas tetap konsisten. Basis data ini juga menjadi titik integrasi bersama antara Laravel dan backend Python, sehingga data yang telah divalidasi dapat diproses solver dan hasilnya tersimpan kembali untuk ditampilkan di dashboard.                     |
-| **Tailwind CSS**             | Dalam implementasinya, Tailwind CSS digunakan untuk membangun antarmuka dashboard yang berbeda untuk setiap role (Sekjur, Kajur, Kaprodi, serta halaman publik) secara konsisten dan responsif melalui utility classes, tanpa perlu menulis stylesheet kustom terpisah untuk tiap halaman.                                                                                                                                                                                             |
-| **Alpine.js**                | Digunakan untuk menangani interaktivitas ringan di sisi clien,seperti toggle tampilan filter, transisi antar state, dan inisialisasi komponen (`x-data`, `x-show`, `x-transition`, `x-init`,yang cukup untuk kebutuhan UI dashboard berbasis Blade tanpa memerlukan framework JavaScript skala penuh.                                                                                                                                                                                  |
-| **Docker & Docker Compose**  | Digunakan untuk menjalankan Laravel, layer Python (scheduling engine), dan MySQL sebagai layanan-layanan terpisah namun terintegrasi dalam satu lingkungan yang konsisten. Dengan ini, proses instalasi sistem multi-service dapat dilakukan melalui satu skrip instalasi (`install.sh`) tanpa konfigurasi manual di tiap komponen.                                                                                                                                                    |
+| Teknologi                    | Alasan Pemilihan                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Google OR-Tools (CP-SAT)** | Constraint Programming dipilih karena mampu menangani berbagai jenis batasan sekaligus, konflik jadwal dosen, konflik penggunaan ruang, dan keterbatasan ruang laboratoriu,cukup dengan mendeklarasikan aturan satu kali, solver akan otomatis mencari kombinasi jadwal yang memenuhi seluruh batasan tanpa pengecekan manual berulang. Solver CP-SAT digunakan sebagai mesin pencari solusi ini pada proses Auto-Generate Jadwal, dijalankan di backend Python setelah data divalidasi. |
+| **Laravel 12**               | Dipilih sebagai backbone aplikasi web karena arsitektur MVC-nya memisahkan pengelolaan data, logika bisnis, dan tampilan secara terstruktur. Eloquent ORM digunakan untuk mengelola data akademik (dosen, mata kuliah, ruangan, kelas), Blade untuk menyusun dashboard multi-role, serta middleware autentikasi dan proteksi bawaan terhadap SQL Injection, CSRF, dan XSS yang relevan untuk sistem dengan banyak tingkat hak akses (Sekjur, Kajur, Kaprodi).                            |
+| **FastAPI**                  | Dalam implementasinya, FastAPI digunakan sebagai layer backend Python terpisah yang menjalankan scheduling engine berbasis OR-Tools CP-SAT, berkomunikasi dengan aplikasi Laravel melalui REST API dan basis data MySQL yang dipakai bersama. Pemisahan ini menjaga proses komputasi penjadwalan yang berat tetap terpisah dari logika aplikasi web utama.                                                                                                                               |
+| **MySQL 8.0**                | Digunakan sebagai basis data relasional yang menyimpan seluruh data akademik (dosen, mata kuliah, ruangan, kelas, program studi) beserta hasil jadwal, dengan mekanisme Primary Key–Foreign Key yang menjaga relasi antar entitas tetap konsisten. Basis data ini juga menjadi titik integrasi bersama antara Laravel dan backend Python, sehingga data yang telah divalidasi dapat diproses solver dan hasilnya tersimpan kembali untuk ditampilkan di dashboard.                       |
+| **Tailwind CSS**             | Dalam implementasinya, Tailwind CSS digunakan untuk membangun antarmuka dashboard yang berbeda untuk setiap role (Sekjur, Kajur, Kaprodi, serta halaman publik) secara konsisten dan responsif melalui utility classes, tanpa perlu menulis stylesheet kustom terpisah untuk tiap halaman.                                                                                                                                                                                               |
+| **Alpine.js**                | Digunakan untuk menangani interaktivitas ringan di sisi clien,seperti toggle tampilan filter, transisi antar state, dan inisialisasi komponen (`x-data`, `x-show`, `x-transition`, `x-init`,yang cukup untuk kebutuhan UI dashboard berbasis Blade tanpa memerlukan framework JavaScript skala penuh.                                                                                                                                                                                    |
+| **Docker & Docker Compose**  | Digunakan untuk menjalankan Laravel, layer Python (scheduling engine), dan MySQL sebagai layanan-layanan terpisah namun terintegrasi dalam satu lingkungan yang konsisten. Dengan ini, proses instalasi sistem multi-service dapat dilakukan melalui satu skrip instalasi (`install.sh`) tanpa konfigurasi manual di tiap komponen.                                                                                                                                                      |
 
 ### Dependencies Utama
 
@@ -473,37 +482,7 @@ erDiagram
 
 ```
 sistem-penjadwalan/
-├── docker-compose.yml              # Orkestrasi layanan container (MySQL, Laravel, Python, PMA)
-├── install.sh                      # Script otomatisasi instalasi & setup environment
-├── README.md                       # Dokumentasi utama proyek
-├── sistem-penjadwalan-laravel/     # RIMARY BACKEND & FRONTEND (Laravel 12)
-│   ├── app/                        # Logika aplikasi (Controllers, Models, Middleware)
-│   ├── config/                     # Konfigurasi aplikasi, database, dan environment
-│   ├── database/                   # Skrip migrasi dan seeder database MySQL
-│   ├── public/                     # Aset statis dan entry point web (index.php)
-│   ├── resources/                  # UI Frontend (Blade templates, CSS Tailwind, JS Alpine)
-│   ├── routes/                     # Definisi rute web dan API (web.php)
-│   ├── storage/                    # Penyimpanan log dan file sementara (upload dataset)
-│   ├── Dockerfile                  # Instruksi build container untuk environment PHP/Laravel
-│   ├── queue-worker-entrypoint.sh  # Script inisialisasi untuk memproses background jobs (queue)
-│   ├── composer.json               # Daftar dependensi backend PHP (DomPDF, Excel)
-│   ├── package.json                # Daftar dependensi frontend (Alpine.js, Axios)
-│   ├── tailwind.config.js          # Konfigurasi styling Tailwind CSS
-│   └── vite.config.js              # Konfigurasi build tool frontend
-└── sistem-penjadwalan-python/      # PROCESSING SERVICE (FastAPI 3.12)
-    ├── services/                   # Modul komputasi & algoritma
-    │   ├── cleansing_service.py    # Logika normalisasi & pembersihan dataset mentah (Pandas)
-    │   └── scheduler_service.py    # Algoritma penjadwalan Constraint Programming (Google OR-Tools)
-    ├── src/                        # Direktori untuk modul dan utilitas tambahan Python
-    ├── main.py                     # Entry point FastAPI & definisi endpoints
-    ├── Dockerfile                  # Instruksi build container untuk environment Python
-    ├── entrypoint.sh               # Script inisialisasi layanan Python
-    └── requirements.txt            # Daftar dependensi Python (fastapi, ortools, pandas)
-```
-
-```
-sistem-penjadwalan/
-├── docker-compose.yml              # Orkestrasi layanan container (MySQL, Laravel, Python, PMA)
+├── docker-compose.yml              # Pengelolaan layanan container (MySQL, Laravel, Python, PMA)
 ├── install.sh                      # Script otomatisasi instalasi & setup environment
 ├── README.md                       # Dokumentasi utama proyek
 ├── sistem-penjadwalan-laravel/     # PRIMARY BACKEND & FRONTEND (Laravel 12)
@@ -686,46 +665,46 @@ Koordinator Program Studi (Kaprodi) memiliki wawasan spesifik yang secara otomat
 ### Base URL
 
 ```
-Development: http://localhost:3000/api
-Production: https://[domain]/api
+Internal (Laravel FastAPI, dalam Docker network)   : http://python-app:8000
+External FastAPI (host, untuk testing manual)      : http://localhost:8080
+Laravel Web Application                            : http://localhost:8000
 ```
 
 ### Endpoints
 
-#### Authentication
+#### Data Cleansing & Scheduling
 
 ```http
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/logout
-GET /api/auth/me
+POST /api/cleansing/master
+POST /api/generate-jadwal
 ```
 
-#### [Resource 1]
+#### Generate Jadwal (Session-based, role: sekretaris jurusan)
 
 ```http
-GET /api/[resource] # Get all
-GET /api/[resource]/:id # Get by ID
-POST /api/[resource] # Create
-PUT /api/[resource]/:id # Update
-DELETE /api/[resource]/:id # Delete
+POST /sekjur/jadwal/generate/process
+GET  /sekjur/jadwal/generate/status
 ```
 
 ### Example Request
 
 ```javascript
-// Login
-const response = await fetch("/api/auth/login", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    email: "user@example.com",
-    password: "password123",
-  }),
-});
+const response = await fetch(
+  "http://localhost:8000/sekjur/jadwal/generate/process",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+    },
+    body: JSON.stringify({
+      tahun_ajar_id: 1,
+    }),
+  },
+);
 ```
 
-## 📖 **[Dokumentasi API Lengkap](./docs/API.md)** _(opsional)_
+## 📖 **[Dokumentasi API Lengkap](./docs/API.md)**
 
 ## 🧪 Testing
 
@@ -761,6 +740,6 @@ lebih lanjut.
 ---
 
 <div align="center">
- **Made with ❤️ by [Nama Tim] for ITECHNO CUP 2026**
+ **Made with ❤️ by 404 forbidden for ITECHNO CUP 2026**
 
 </div>
