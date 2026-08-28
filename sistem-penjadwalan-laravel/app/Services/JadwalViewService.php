@@ -75,6 +75,10 @@ class JadwalViewService
     {
         $tahunAjars = TahunAjar::orderBy('tahun', 'desc')->orderBy('semester', 'desc')->get();
         $selectedTahunAjarId = $request->input('tahun_ajar_id');
+
+        if (!$selectedTahunAjarId && $tahunAjars->isNotEmpty()) {
+            $selectedTahunAjarId = $tahunAjars->first()->id;
+        }
         
         $activeTahunAjarIds = $selectedTahunAjarId ? [$selectedTahunAjarId] : [];
 
@@ -87,26 +91,25 @@ class JadwalViewService
         $matrixJadwal = self::emptyMatrix();
         $matkulMandiri = collect();
 
-        if ($request->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id', 'tahun_ajar_id'])) {
-            $query = Jadwal::with(['mata_kuliah', 'dosen', 'kelas', 'ruang'])
-                ->whereIn('tahun_ajar_id', $activeTahunAjarIds);
+        $query = Jadwal::with(['mata_kuliah', 'dosen', 'kelas', 'ruang'])
+            ->whereIn('tahun_ajar_id', $activeTahunAjarIds);
 
-            if ($request->filled('dosen_id')) $query->where('dosen_id', $request->dosen_id);
-            if ($request->filled('kelas_id')) $query->where('kelas_id', $request->kelas_id);
-            if ($request->filled('ruang_id')) $query->where('ruang_id', $request->ruang_id);
-            if ($request->filled('prodi_id')) {
-                $query->whereHas('kelas', fn ($q) => $q->where('prodi_id', $request->prodi_id));
-            }
-
-            $matrixJadwal = self::mapToMatrix($query->get());
-
-            if ($request->filled('kelas_id') || $request->filled('prodi_id')) {
-                $kelasTarget = Kelas::query();
-                if ($request->filled('kelas_id')) $kelasTarget->where('id', $request->kelas_id);
-                if ($request->filled('prodi_id')) $kelasTarget->where('prodi_id', $request->prodi_id);
-                $matkulMandiri = self::detectMbkm($kelasTarget->get());
-            }
+        if ($request->filled('dosen_id')) $query->where('dosen_id', $request->dosen_id);
+        if ($request->filled('kelas_id')) $query->where('kelas_id', $request->kelas_id);
+        if ($request->filled('ruang_id')) $query->where('ruang_id', $request->ruang_id);
+        if ($request->filled('prodi_id')) {
+            $query->whereHas('kelas', fn ($q) => $q->where('prodi_id', $request->prodi_id));
         }
+
+        $matrixJadwal = self::mapToMatrix($query->get());
+
+        $kelasTarget = Kelas::query();
+        if ($request->filled('kelas_id')) $kelasTarget->where('id', $request->kelas_id);
+        if ($request->filled('prodi_id')) $kelasTarget->where('prodi_id', $request->prodi_id);
+        if ($selectedTahunAjarId) {
+            $kelasTarget->where('tahun_ajar_id', $selectedTahunAjarId);
+        }
+        $matkulMandiri = self::detectMbkm($kelasTarget->get());
 
         return compact('dosens', 'kelas', 'ruangs', 'prodis', 'matrixJadwal', 'matkulMandiri', 'tahunAjars', 'selectedTahunAjarId') + [
             'totalSesi' => self::$totalSesi,

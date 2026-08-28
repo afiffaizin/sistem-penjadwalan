@@ -190,7 +190,6 @@
 
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mt-4 pt-4 border-t border-gray-100">
                         <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                            @if(request()->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id']))
                                 <button type="submit" 
                                         formaction="{{ route('jadwal.export.excel') }}" 
                                         class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition duration-150 shadow-sm shadow-emerald-100">
@@ -204,7 +203,6 @@
                                     <i class="fa-solid fa-file-pdf text-base"></i>
                                     <span>Export PDF</span>
                                 </button>
-                            @endif
                         </div>
 
                         <div class="flex w-full sm:w-auto justify-end gap-3">
@@ -219,13 +217,13 @@
                 </form>
             </div>
 
-            @if(request()->anyFilled(['dosen_id', 'kelas_id', 'ruang_id', 'prodi_id']))
+            @if(true)
                 
                 @php
-                    $hanyaFilterProdi = request()->filled('prodi_id') && !request()->filled('dosen_id') && !request()->filled('kelas_id') && !request()->filled('ruang_id');
+                    $tampilPerKelas = !request()->filled('dosen_id') && !request()->filled('kelas_id') && !request()->filled('ruang_id');
                 @endphp
 
-                @if($hanyaFilterProdi)
+                @if($tampilPerKelas)
                     @php
                         $kelasDitemukan = [];
                         for ($s = 1; $s <= $totalSesi; $s++) {
@@ -408,14 +406,6 @@
                     @endif
                 @endif
                 
-            @else
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-16 text-center mt-6">
-                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-amber-50 mb-5 border-4 border-amber-100">
-                        <i class="fa-solid fa-calendar-days text-3xl text-amber-500"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">Pilih Filter Jadwal</h3>
-                    <p class="text-gray-500 text-sm max-w-md mx-auto">Silakan pilih spesifikasi pencarian melalui dropdown di atas, lalu klik "Tampilkan Jadwal".</p>
-                </div>
             @endif
         </div>
     </main>
