@@ -21,26 +21,24 @@
 - [Tentang Proyek](#-tentang-proyek)
 - [Fitur Unggulan](#-fitur-unggulan)
 - [Demo & Screenshot](#-demo--screenshot)
-- [Teknologi](#-teknologi)
-- [Arsitektur Sistem](#-arsitektur-sistem)
-- [Instalasi & Setup](#-instalasi--setup)
+- [Teknologi](#%EF%B8%8F-teknologi)
+- [Arsitektur Sistem](#%EF%B8%8F-arsitektur-sistem)
+- [Instalasi & Setup](#%EF%B8%8F-instalasi--setup)
 - [Penggunaan](#-penggunaan)
 - [API Documentation](#-api-documentation)
 - [Testing](#-testing)
-- [Tim Developer](#-tim-pengembang)
+- [Tim Developer](#-tim-developer)
 - [Lisensi](#-lisensi)
 
 ---
 
 ## 👥 Tim Developer
 
-| Nama                            | Peran              | GitHub                                      |
-| ------------------------------- | ------------------ | ------------------------------------------- |
-| **Davu Andrias Dzakwan**        | Project Lead       | [GitHub](https://github.com/[username2])    |
-| **Afif Nur Faizin**             | Frontend Developer | [GitHub](https://github.com/afiffaizin])    |
-| **Valenisaa Falaq Hendratmoko** | Backend Developer  | [GitHub](https://github.com/ValenisaaFalaq) |
-
-## |
+| Nama                            | Peran               | GitHub                                      |
+| ------------------------------- | ------------------- | ------------------------------------------- |
+| **Davu Andrias Dzakwan**        | Project Lead        | [GitHub](https://github.com/[username2])    |
+| **Afif Nur Faizin**             | Fullstack Developer | [GitHub](https://github.com/afiffaizin])    |
+| **Valenisaa Falaq Hendratmoko** | Technical Writer    | [GitHub](https://github.com/ValenisaaFalaq) |
 
 ## 🎯 Tentang Proyek
 
@@ -92,17 +90,15 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
 
 ## ✨ Fitur Unggulan
 
-### Fitur Utama## ✨ Fitur Unggulan
-
 ### Fitur Utama
 
-| Fitur                                             | Deskripsi                                                                                                                                                                                                                                                                                                                                                                                                                                              | Keunggulan                                                                                                                                                                                         |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Auto-Generate Jadwal (Constraint Programming)** | Fitur inti sistem. Sekretaris Jurusan cukup menekan satu tombol untuk menjalankan scheduling engine berbasis Google OR-Tools dengan solver CP-SAT. Sistem menghitung miliaran kemungkinan kombinasi jadwal terhadap 6 hard constraint yang telah ditetapkan, mata kuliah dijadwalkan tepat satu kali, SKS berjalan kontinu, tidak ada bentrok ruang, tidak ada bentrok dosen, tidak ada bentrok kelas mahasiswa, dan slot istirahat Jumat dikosongkan. | Menggantikan penyusunan manual dengan pencarian solusi otomatis yang memeriksa seluruh batasan sekaligus, menghasilkan jadwal mingguan tanpa konflik dosen maupun ruang hanya dalam satu eksekusi. |
-| **Manajemen Data Master**                         | Mengelola seluruh data dasar perkuliahan secara terpusat: akun pengguna, tahun akademik, semester, program studi, rombongan kelas, dosen, mata kuliah beserta SKS, hingga ketersediaan ruangan mencakup 5 modul Master Data (Kelas, Dosen, Ruangan, Mata Kuliah, Program Studi).                                                                                                                                                                       | Seluruh data akademik yang menjadi input penjadwalan berada dalam satu sistem terpusat, bukan tersebar di banyak dokumen terpisah.                                                                 |
-| **Pembersihan Data Otomatis (Data Cleansing)**    | Memvalidasi dataset dosen, mata kuliah, dan ruangan yang diunggah dalam format Excel. Sistem otomatis mendeteksi data ganda, tidak sinkron, kolom kosong, atau format tidak sesuai sebelum data digunakan pada tahap Generate.                                                                                                                                                                                                                         | Kualitas data diperiksa secara otomatis sebelum masuk proses penjadwalan, sehingga potensi kesalahan input tidak ikut terbawa ke hasil jadwal.                                                     |
-| **Pemantauan Jadwal Multi-Perspektif**            | Menyajikan hasil jadwal dari berbagai sudut pandang (dosen, kelas, ruangan, program studi) dengan hak akses terpisah untuk Sekretaris Jurusan, Kepala Jurusan, dan Koordinator Program Studi.                                                                                                                                                                                                                                                          | Setiap role memperoleh cakupan data sesuai kewenangannya (jurusan vs. per program studi) tanpa perlu menyaring satu dokumen jadwal yang sama secara manual.                                        |
-| **Cetak dan Ekspor Jadwal**                       | Mengunduh hasil akhir matriks jadwal mingguan ke dalam file Excel atau PDF secara instan, siap didistribusikan kepada dosen dan mahasiswa.                                                                                                                                                                                                                                                                                                             | Jadwal yang sudah tervalidasi langsung tersedia dalam format siap distribusi tanpa proses ekspor manual tambahan.                                                                                  |
+| Fitur                                             | Deskripsi                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Keunggulan                                                                                                                                                                                         |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auto-Generate Jadwal (Constraint Programming)** | FFitur inti sistem. Sekretaris Jurusan cukup menekan satu tombol untuk menjalankan scheduling engine berbasis Google OR-Tools dengan solver CP-SAT. Sistem menghitung kombinasi jadwal terhadap delapan hard constraint yang telah ditetapkan: mata kuliah dijadwalkan tepat satu kali, SKS berjalan kontinu, tidak ada bentrok ruang, tidak ada bentrok dosen, tidak ada bentrok kelas mahasiswa, slot istirahat Jumat dikosongkan, cuti/libur dosen dihormati, urutan sesi teori mendahului praktikum, kesesuaian kategori ruangan, dan ruangan spesifik bila diatur. Selain itu, sistem juga menerapkan satu soft constraint berupa preferensi penempatan ruang praktikum sesuai program studi pengampu sebelum mempertimbangkan ruang lintas program studi. | Menggantikan penyusunan manual dengan pencarian solusi otomatis yang memeriksa seluruh batasan sekaligus, menghasilkan jadwal mingguan tanpa konflik dosen maupun ruang hanya dalam satu eksekusi. |
+| **Manajemen Data Master**                         | Mengelola seluruh data dasar perkuliahan secara terpusat: akun pengguna, tahun akademik, semester, program studi, rombongan kelas, dosen, mata kuliah beserta SKS, hingga ketersediaan ruangan, mencakup 6 modul Master Data (Program Studi, Dosen, Mata Kuliah, Ruangan, Kelas, Plotting Dosen).                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Seluruh data akademik yang menjadi input penjadwalan berada dalam satu sistem terpusat, bukan tersebar di banyak dokumen terpisah.                                                                 |
+| **Pembersihan Data Otomatis (Data Cleansing)**    | Memvalidasi dataset dosen, mata kuliah, dan ruangan yang diunggah dalam format Excel. Sistem otomatis mendeteksi data ganda, tidak sinkron, kolom kosong, atau format tidak sesuai sebelum data digunakan pada tahap Generate.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Kualitas data diperiksa secara otomatis sebelum masuk proses penjadwalan, sehingga potensi kesalahan input tidak ikut terbawa ke hasil jadwal.                                                     |
+| **Pemantauan Jadwal Multi-Perspektif**            | Menyajikan hasil jadwal dari berbagai sudut pandang (dosen, kelas, ruangan, program studi) dengan hak akses terpisah untuk Sekretaris Jurusan, Kepala Jurusan, dan Koordinator Program Studi.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Setiap role memperoleh cakupan data sesuai kewenangannya (jurusan vs. per program studi) tanpa perlu menyaring satu dokumen jadwal yang sama secara manual.                                        |
+| **Cetak dan Ekspor Jadwal**                       | Mengunduh hasil akhir matriks jadwal mingguan ke dalam file Excel atau PDF secara instan, siap didistribusikan kepada dosen dan mahasiswa.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Jadwal yang sudah tervalidasi langsung tersedia dalam format siap distribusi tanpa proses ekspor manual tambahan.                                                                                  |
 
 ### Fitur Tambahan
 
@@ -344,83 +340,80 @@ flowchart TD
 
 ```mermaid
 erDiagram
-    %% Tabel Master Data Utama
-    tahun_ajar {
+    tahun_ajars {
         bigint id PK
-        varchar(9) tahun
-        enum semester "Ganjil, Genap"
+        string tahun
+        enum semester "Gasal, Genap"
         boolean is_active
         timestamp created_at
         timestamp updated_at
     }
 
-    program_studi {
+    program_studis {
         bigint id PK
-        varchar(10) kode
-        varchar(100) nama
-        enum jenjang "D3, D4"
+        string kode "nullable"
+        string nama
         timestamp created_at
         timestamp updated_at
     }
 
     users {
         bigint id PK
-        varchar(100) nama
-        varchar(50) username
-        varchar(255) password
-        varchar(100) email
+        string nama
+        string username "unique"
+        string email "unique"
+        string password
         enum role "sekretaris, kajur, kaprodi"
-        bigint prodi_id FK
+        bigint prodi_id FK "nullable"
+        string remember_token "nullable"
         timestamp created_at
         timestamp updated_at
     }
 
-    dosen {
+    dosens {
         bigint id PK
-        varchar(10) kode_dosen
-        varchar(100) nama
-        varchar(20) nidn
+        string kode_dosen "nullable"
+        string nama
+        string nip "nullable"
+        bigint tahun_ajar_id FK "nullable"
+        bigint homebase_prodi_id FK "nullable"
         timestamp created_at
         timestamp updated_at
     }
 
-    ruang {
+    mata_kuliahs {
         bigint id PK
-        varchar(10) kode
-        varchar(100) nama
-        int kapasitas
-        enum kategori "Teori, Praktikum"
-        bigint prodi_id FK
-        tinyint lantai
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    mata_kuliah {
-        bigint id PK
-        varchar(10) kode
-        varchar(100) nama
+        string nama
         tinyint sks_teori
         tinyint sks_praktikum
         tinyint sks_total
+        string kode_group "nullable"
         bigint prodi_id FK
-        tinyint semester
+        bigint tahun_ajar_id FK "nullable"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ruangs {
+        bigint id PK
+        string nama
+        enum kategori "teori, praktikum"
+        string spesifik_mk "nullable"
+        bigint prodi_id FK "nullable"
+        bigint tahun_ajar_id FK "nullable"
         timestamp created_at
         timestamp updated_at
     }
 
     kelas {
         bigint id PK
-        varchar(20) nama
+        string nama
         bigint prodi_id FK
         bigint tahun_ajar_id FK
-        tinyint semester
-        int jumlah_mhs
         timestamp created_at
         timestamp updated_at
     }
 
-    %% Tabel Relasi (Pivot/Junction)
     dosen_prodi {
         bigint id PK
         bigint dosen_id FK
@@ -429,7 +422,7 @@ erDiagram
         timestamp updated_at
     }
 
-    dosen_matkul {
+    dosen_matkuls {
         bigint id PK
         bigint dosen_id FK
         bigint mata_kuliah_id FK
@@ -439,8 +432,7 @@ erDiagram
         timestamp updated_at
     }
 
-    %% Tabel Transaksional Utama
-    jadwal {
+    jadwals {
         bigint id PK
         bigint tahun_ajar_id FK
         bigint dosen_id FK
@@ -454,28 +446,59 @@ erDiagram
         timestamp updated_at
     }
 
-    %% Definisi Relasi (Relationships)
-    program_studi ||--o{ users : "memiliki"
-    program_studi ||--o{ mata_kuliah : "memiliki"
-    program_studi ||--o{ ruang : "memiliki"
-    program_studi ||--o{ kelas : "memiliki"
-    program_studi ||--o{ dosen_prodi : "berelasi dengan"
+    dosen_unavailable_days {
+        bigint id PK
+        bigint user_id FK
+        bigint dosen_id FK
+        bigint prodi_id FK
+        bigint tahun_ajar_id FK
+        enum hari "Senin, Selasa, Rabu, Kamis, Jumat"
+        timestamp created_at
+        timestamp updated_at
+    }
 
-    dosen ||--o{ dosen_prodi : "berelasi dengan"
-    dosen ||--o{ dosen_matkul : "mengampu"
-    dosen ||--o{ jadwal : "terjadwal di"
+    jadwal_generate_jobs {
+        bigint id PK
+        bigint tahun_ajar_id FK
+        enum status "pending, processing, completed, failed"
+        text error_message "nullable"
+        timestamp started_at "nullable"
+        timestamp completed_at "nullable"
+        timestamp created_at
+        timestamp updated_at
+    }
 
-    tahun_ajar ||--o{ kelas : "memiliki"
-    tahun_ajar ||--o{ dosen_matkul : "memiliki"
-    tahun_ajar ||--o{ jadwal : "memiliki"
+    program_studis ||--o{ users : "prodi_id"
+    program_studis ||--o{ mata_kuliahs : "prodi_id"
+    program_studis ||--o{ ruangs : "prodi_id"
+    program_studis ||--o{ kelas : "prodi_id"
+    program_studis ||--o{ dosen_prodi : "prodi_id"
+    program_studis ||--o{ dosen_unavailable_days : "prodi_id"
+    program_studis ||--o{ dosens : "homebase_prodi_id"
 
-    mata_kuliah ||--o{ dosen_matkul : "diampu oleh"
-    mata_kuliah ||--o{ jadwal : "terjadwal di"
+    tahun_ajars ||--o{ kelas : "tahun_ajar_id"
+    tahun_ajars ||--o{ dosen_matkuls : "tahun_ajar_id"
+    tahun_ajars ||--o{ jadwals : "tahun_ajar_id"
+    tahun_ajars ||--o{ dosens : "tahun_ajar_id"
+    tahun_ajars ||--o{ mata_kuliahs : "tahun_ajar_id"
+    tahun_ajars ||--o{ ruangs : "tahun_ajar_id"
+    tahun_ajars ||--o{ dosen_unavailable_days : "tahun_ajar_id"
+    tahun_ajars ||--o{ jadwal_generate_jobs : "tahun_ajar_id"
 
-    kelas ||--o{ dosen_matkul : "menerima"
-    kelas ||--o{ jadwal : "terjadwal di"
+    dosens ||--o{ dosen_prodi : "dosen_id"
+    dosens ||--o{ dosen_matkuls : "dosen_id"
+    dosens ||--o{ jadwals : "dosen_id"
+    dosens ||--o{ dosen_unavailable_days : "dosen_id"
 
-    ruang ||--o{ jadwal : "ditempati oleh"
+    mata_kuliahs ||--o{ dosen_matkuls : "mata_kuliah_id"
+    mata_kuliahs ||--o{ jadwals : "mata_kuliah_id"
+
+    kelas ||--o{ dosen_matkuls : "kelas_id"
+    kelas ||--o{ jadwals : "kelas_id"
+
+    ruangs ||--o{ jadwals : "ruang_id"
+
+    users ||--o{ dosen_unavailable_days : "user_id"
 ```
 
 ### Folder Structure
