@@ -78,7 +78,7 @@ class JadwalController extends Controller
         GenerateJadwalJob::dispatch($targetTahunAjarId, $tracker->id);
 
         return response()->json([
-            'status' => 'ok',
+            'status' => 'success',
             'message' => 'Proses generate jadwal dimulai.',
             'job_id' => $tracker->id,
         ]);

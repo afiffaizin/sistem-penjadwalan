@@ -314,7 +314,7 @@ Role `sekretaris` (middleware closure di `web.php`; selain role ini akan menerim
 
 ```json
 {
-  "status": "ok",
+  "status": "success",
   "message": "Proses generate jadwal dimulai.",
   "job_id": 15
 }
@@ -341,7 +341,7 @@ Role `sekretaris` (middleware closure di `web.php`; selain role ini akan menerim
 
 | Field     | Type    | Description                                                                    |
 | --------- | ------- | ------------------------------------------------------------------------------ |
-| `status`  | string  | `"ok"` atau `"error"`                                                          |
+| `status`  | string  | `"success"` atau `"error"`                                                          |
 | `message` | string  | Pesan status                                                                   |
 | `job_id`  | integer | ID record `JadwalGenerateJob` untuk dipakai polling status (hanya pada sukses) |
 

@@ -34,7 +34,7 @@
                         <i class="fa-solid fa-cloud-arrow-down text-gray-400"></i> Template Mata Kuliah
                     </a>
 
-                    <a href="{{ asset('templates/ruang_mk_prodi.xlsx') }}" download
+                    <a href="{{ asset('templates/ruang.xlsx') }}" download
                         class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 hover:bg-amber-50 hover:text-amber-600 transition font-medium">
                         <i class="fa-solid fa-cloud-arrow-down text-gray-400"></i> Template Data Ruangan
                     </a>
