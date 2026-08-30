@@ -213,11 +213,11 @@ Build Tool : Vite
 #### Backend
 
 ```
-Runtime    : PHP 8.2 & Python 3.12
+Runtime    : PHP 8.3 & Python 3.12
 Framework  : Laravel 12 & FastAPI
 Database   : MySQL 8.0
 ORM        : Eloquent
-Auth       : Laravel Breeze (Session-based)
+Auth       : Laravel Breeze (Session-based) & Role-based Middleware
 ```
 
 #### DevOps & Tools
@@ -235,8 +235,8 @@ Monitoring : Laravel Default Logs
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Google OR-Tools (CP-SAT)** | Constraint Programming dipilih karena mampu menangani berbagai jenis batasan sekaligus, konflik jadwal dosen, konflik penggunaan ruang, dan keterbatasan ruang laboratoriu,cukup dengan mendeklarasikan aturan satu kali, solver akan otomatis mencari kombinasi jadwal yang memenuhi seluruh batasan tanpa pengecekan manual berulang. Solver CP-SAT digunakan sebagai mesin pencari solusi ini pada proses Auto-Generate Jadwal, dijalankan di backend Python setelah data divalidasi. |
 | **Laravel 12**               | Dipilih sebagai backbone aplikasi web karena arsitektur MVC-nya memisahkan pengelolaan data, logika bisnis, dan tampilan secara terstruktur. Eloquent ORM digunakan untuk mengelola data akademik (dosen, mata kuliah, ruangan, kelas), Blade untuk menyusun dashboard multi-role, serta middleware autentikasi dan proteksi bawaan terhadap SQL Injection, CSRF, dan XSS yang relevan untuk sistem dengan banyak tingkat hak akses (Sekjur, Kajur, Kaprodi).                            |
-| **FastAPI**                  | Dalam implementasinya, FastAPI digunakan sebagai layer backend Python terpisah yang menjalankan scheduling engine berbasis OR-Tools CP-SAT, berkomunikasi dengan aplikasi Laravel melalui REST API dan basis data MySQL yang dipakai bersama. Pemisahan ini menjaga proses komputasi penjadwalan yang berat tetap terpisah dari logika aplikasi web utama.                                                                                                                               |
-| **MySQL 8.0**                | Digunakan sebagai basis data relasional yang menyimpan seluruh data akademik (dosen, mata kuliah, ruangan, kelas, program studi) beserta hasil jadwal, dengan mekanisme Primary Key–Foreign Key yang menjaga relasi antar entitas tetap konsisten. Basis data ini juga menjadi titik integrasi bersama antara Laravel dan backend Python, sehingga data yang telah divalidasi dapat diproses solver dan hasilnya tersimpan kembali untuk ditampilkan di dashboard.                       |
+| **FastAPI**                  | Dalam implementasinya, FastAPI digunakan sebagai layer backend Python terpisah yang menjalankan scheduling engine berbasis OR-Tools CP-SAT, berkomunikasi dengan aplikasi Laravel melalui REST API. Pemisahan ini menjaga proses komputasi penjadwalan yang berat tetap terpisah dari logika aplikasi web utama.                                                                                                                                                                         |
+| **MySQL 8.0**                | Digunakan sebagai basis data relasional yang menyimpan seluruh data akademik (dosen, mata kuliah, ruangan, kelas, program studi) beserta hasil jadwal, dengan mekanisme Primary Key–Foreign Key yang menjaga relasi antar entitas tetap konsisten. Basis data ini diakses eksklusif oleh Laravel melalui Eloquent ORM, sehingga data yang telah divalidasi dapat diproses solver dan hasilnya tersimpan kembali untuk ditampilkan di dashboard.                                          |
 | **Tailwind CSS**             | Dalam implementasinya, Tailwind CSS digunakan untuk membangun antarmuka dashboard yang berbeda untuk setiap role (Sekjur, Kajur, Kaprodi, serta halaman publik) secara konsisten dan responsif melalui utility classes, tanpa perlu menulis stylesheet kustom terpisah untuk tiap halaman.                                                                                                                                                                                               |
 | **Alpine.js**                | Digunakan untuk menangani interaktivitas ringan di sisi clien,seperti toggle tampilan filter, transisi antar state, dan inisialisasi komponen (`x-data`, `x-show`, `x-transition`, `x-init`,yang cukup untuk kebutuhan UI dashboard berbasis Blade tanpa memerlukan framework JavaScript skala penuh.                                                                                                                                                                                    |
 | **Docker & Docker Compose**  | Digunakan untuk menjalankan Laravel, layer Python (scheduling engine), dan MySQL sebagai layanan-layanan terpisah namun terintegrasi dalam satu lingkungan yang konsisten. Dengan ini, proses instalasi sistem multi-service dapat dilakukan melalui satu skrip instalasi (`install.sh`) tanpa konfigurasi manual di tiap komponen.                                                                                                                                                      |
@@ -263,77 +263,107 @@ Monitoring : Laravel Default Logs
 
 ```mermaid
 flowchart TD
-    %% Define Styles
-    classDef client fill:#f9f9f9,stroke:#333,stroke-width:2px,color:#333
-    classDef laravel fill:#ff2d20,stroke:#b91c1c,stroke-width:2px,color:#fff
-    classDef python fill:#009688,stroke:#005f56,stroke-width:2px,color:#fff
-    classDef database fill:#00758f,stroke:#005c70,stroke-width:2px,color:#fff
+
+    classDef client fill:#FFF8E1,stroke:#D6A700,stroke-width:2px,color:#333
+    classDef laravel fill:#FFE082,stroke:#C49000,stroke-width:2px,color:#333
+    classDef python fill:#FFD54F,stroke:#B88600,stroke-width:2px,color:#333
+    classDef database fill:#FFC107,stroke:#A87900,stroke-width:2px,color:#333
 
     %% Client Layer
     subgraph ClientLayer ["Client Layer"]
-        Browser(["Web Browser<br/>(Rendered UI + Alpine.js + Tailwind CSS)"])
+        Browser(["Web Browser<br/>Blade Server Side Rendering<br/>Tailwind CSS"])
     end
+
     class Browser client
 
     %% Laravel Application Layer
-    subgraph LaravelLayer ["Web Application (Laravel 12)"]
-        Routing["Routing & Access Control<br/>(web.php, Breeze Authentication, Middleware)"]
-        Controllers["Controllers<br/>(CRUD, Schedule Management, PDF/Excel, API Integration)"]
-        Blade["Blade Templating Engine<br/>(Server-Side Rendering)"]
+    subgraph LaravelLayer ["laravel-app"]
+        Routing["Routing and Access Control<br/>web.php, Breeze Auth, Role Middleware"]
+
+        Controllers["Controllers<br/>CRUD, Upload Excel, Schedule Management<br/>PDF and Excel Export via JadwalViewService"]
+
+        Blade["Blade Templating Engine<br/>Server Side Rendering"]
+
         Eloquent["Eloquent ORM"]
     end
-    class Routing,Controllers,Blade,Eloquent,LaravelLayer laravel
 
-    %% Background Jobs / Infrastructure
-    subgraph InfraLayer ["Background Processing"]
-        Queue["Queue Worker<br/>(Async Jobs)"]
+    class Routing,Controllers,Blade,Eloquent laravel
+
+    %% Background Jobs
+    subgraph InfraLayer ["queue-worker"]
+        Queue["GenerateJadwalJob<br/>Dispatched by JadwalController<br/>Laravel Queue Worker"]
     end
-    class Queue,InfraLayer laravel
+
+    class Queue laravel
 
     %% Python Processing Service
-    subgraph PythonLayer ["Processing Service (FastAPI)"]
-        API["FastAPI Endpoints"]
-        Cleansing["Data Cleansing<br/>(Pandas)"]
-        Scheduler["Scheduling Service"]
-        Solver["CP-SAT Solver<br/>(Google OR-Tools)"]
+    subgraph PythonLayer ["python-app"]
+        API_Cleansing["POST /api/cleansing/master<br/>Multipart Form Data<br/>file_dosen, file_matkul, file_ruang"]
+
+        API_Generate["POST /api/generate-jadwal<br/>JSON Request<br/>pengampu, ruangan, unavailable_days"]
+
+        Cleansing["Data Cleansing Service<br/>Pandas and openpyxl"]
+
+        Scheduler["Scheduling Service<br/>CP SAT Solver<br/>Google OR Tools"]
     end
-    class API,Cleansing,Scheduler,Solver,PythonLayer python
+
+    class API_Cleansing,API_Generate,Cleansing,Scheduler python
 
     %% Database Layer
     subgraph DBLayer ["Database Layer"]
-        MySQL[("MySQL 8.0")]
-        PMA["phpMyAdmin<br/>(Visual Management)"]
-    end
-    class MySQL,PMA,DBLayer database
+        MySQL[("MySQL 8.0<br/>db_penjadwalan")]
 
-    %% Client to Laravel
-    Browser -- "HTTP Request" --> Routing
+        PMA["phpMyAdmin<br/>Host Port 8081"]
+    end
+
+    class MySQL,PMA database
+
+    %% Browser and Laravel
+    Browser -- "HTTP Port 8000" --> Routing
+
     Routing --> Controllers
+
     Controllers --> Blade
+
     Blade -- "HTML Response" --> Browser
 
-    %% Laravel Internal & Database
+    %% Browser Job Status
+    Browser -. "GET /sekjur/jadwal/generate/status<br/>Polling Job Status" .-> Controllers
+
+    %% Laravel and Database
     Controllers --> Eloquent
-    Eloquent -- "Read / Write" --> MySQL
 
-    %% Background Worker
-    Controllers -. "Dispatch Job" .-> Queue
+    Eloquent -- "Read and Write" --> MySQL
 
-    %% Laravel to Python
-    Controllers -- "HTTP POST<br/>(JSON / Files)" --> API
+    Controllers -. "Insert Job<br/>QUEUE_CONNECTION database" .-> MySQL
 
-    %% Python Processing
-    API --> Cleansing
-    API --> Scheduler
-    Scheduler --> Solver
+    MySQL -. "Job Retrieved by Worker" .-> Queue
 
-    %% Python Response
-    Cleansing -- "Clean Data" --> API
-    Solver -- "Generated Schedule" --> API
-    API -- "HTTP Response<br/>(JSON)" --> Controllers
+    Queue -- "Read and Write<br/>jadwal_generate_jobs and jadwals" --> MySQL
+
+    %% Controller Dispatches Queue
+    Controllers -. "GenerateJadwalJob dispatch" .-> Queue
+
+    %% Upload Excel and FastAPI Cleansing
+    Controllers -- "HTTP POST Multipart<br/>PYTHON_API_URL" --> API_Cleansing
+
+    API_Cleansing --> Cleansing
+
+    Cleansing -- "Cleaned Data" --> API_Cleansing
+
+    API_Cleansing -- "JSON Response<br/>Cleaned Dataset" --> Controllers
+
+    %% Queue Worker and FastAPI Scheduler
+    Queue -- "HTTP POST JSON<br/>PYTHON_API_URL" --> API_Generate
+
+    API_Generate --> Scheduler
+
+    Scheduler -- "Generated Schedule" --> API_Generate
+
+    API_Generate -- "JSON Response<br/>Schedule or Error" --> Queue
 
     %% Database Management
-    PMA -. "Manage" .-> MySQL
+    PMA -. "Database Management" .-> MySQL
 ```
 
 ### Database Schema
