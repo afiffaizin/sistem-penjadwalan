@@ -4,9 +4,9 @@
 
 ### [Tagline Singkat dan Menarik]
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_Site-success?style=for-the-badge)](https://sisjadwal.afiefnoer.my.id/])
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_Site-success?style=for-the-badge)](https://sisjadwal.afiefnoer.my.id/)
 
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://[github.com/afiffaizin/sistem-penjadwalan.git])
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/afiffaizin/sistem-penjadwalan.git)
 
 [![License](https://img.shields.io/badge/License-MIT-bluestyle=for-the-badge)](LICENSE)
 
@@ -37,7 +37,7 @@
 | Nama                            | Peran               | GitHub                                      |
 | ------------------------------- | ------------------- | ------------------------------------------- |
 | **Davu Andrias Dzakwan**        | Project Lead        | [GitHub](https://github.com/davuad)         |
-| **Afif Nur Faizin**             | Fullstack Developer | [GitHub](https://github.com/afiffaizin])    |
+| **Afif Nur Faizin**             | Fullstack Developer | [GitHub](https://github.com/afiffaizin)     |
 | **Valenisaa Falaq Hendratmoko** | Technical Writer    | [GitHub](https://github.com/ValenisaaFalaq) |
 
 ## 🎯 Tentang Proyek
@@ -78,7 +78,7 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
 
 ### Tujuan Proyek
 
-- 🎯 **Tujuan Utama**: Menyediakan sistem penjadwalan perkuliahan berbasis web yang mampu menghasilkan jadwal kuliah bebas konflik secara otomatis menggunakan Constraint Programming, sekaligus menyajikan hasil jadwal dari berbagai sudut pandang agar lebih mudah diakses oleh seluruh pengguna, dirancang agar konsep dan mekanismenya dapat diadaptasi oleh institusi pendidikan lain dengan struktur
+- 🎯 **Tujuan Utama**: Menyediakan sistem penjadwalan perkuliahan berbasis web yang mampu menghasilkan jadwal kuliah bebas konflik secara otomatis menggunakan Constraint Programming, sekaligus menyajikan hasil jadwal dari berbagai sudut pandang agar lebih mudah diakses oleh seluruh pengguna, dirancang agar konsep dan mekanismenya dapat diadaptasi oleh institusi pendidikan lain dengan struktur jurusan dan program studi serupa.
 - 📊 **Target Pengguna**:
   - **Sekretaris Jurusan**, mengelola data master, mengunggah dan memvalidasi data, menjalankan proses generate jadwal, serta mengelola data jadwal yang dihasilkan.
   - **Kepala Jurusan (Kajur)**, memantau dashboard statistik jurusan dan seluruh jadwal perkuliahan, serta mengunduh jadwal.
@@ -243,15 +243,43 @@ Monitoring : Laravel Default Logs
 
 ### Dependencies Utama
 
+#### Composer PHP
+
 ```json
-{
-  "dependencies": {
-    "laravel/framework": "^12.0",
+"require": {
+    "php": "^8.2",
     "barryvdh/laravel-dompdf": "^3.1",
-    "maatwebsite/excel": "^3.1",
-    "fastapi": ">=0.104.0",
-    "ortools": ">=9.7"
-  }
+    "laravel/framework": "^12.0",
+    "laravel/tinker": "^2.10.1",
+    "maatwebsite/excel": "^3.1"
+}
+```
+
+#### Python
+
+```text
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+pandas>=2.1.0
+openpyxl>=3.1.0
+ortools>=9.7
+```
+
+#### npm
+
+```json
+"devDependencies": {
+    "@tailwindcss/forms": "^0.5.2",
+    "@tailwindcss/vite": "^4.0.0",
+    "alpinejs": "^3.4.2",
+    "autoprefixer": "^10.4.2",
+    "axios": "^1.11.0",
+    "concurrently": "^9.0.1",
+    "laravel-vite-plugin": "^2.0.0",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.1.0",
+    "vite": "^7.0.7"
 }
 ```
 
@@ -263,7 +291,6 @@ Monitoring : Laravel Default Logs
 
 ```mermaid
 flowchart TD
-
     classDef client fill:#FFF8E1,stroke:#D6A700,stroke-width:2px,color:#333
     classDef laravel fill:#FFE082,stroke:#C49000,stroke-width:2px,color:#333
     classDef python fill:#FFD54F,stroke:#B88600,stroke-width:2px,color:#333
@@ -271,99 +298,71 @@ flowchart TD
 
     %% Client Layer
     subgraph ClientLayer ["Client Layer"]
-        Browser(["Web Browser<br/>Blade Server Side Rendering<br/>Tailwind CSS"])
+        Browser(["Web Browser<br/>(Blade SSR + Alpine.js + Tailwind CSS)"])
     end
-
     class Browser client
 
     %% Laravel Application Layer
     subgraph LaravelLayer ["laravel-app"]
-        Routing["Routing and Access Control<br/>web.php, Breeze Auth, Role Middleware"]
-
-        Controllers["Controllers<br/>CRUD, Upload Excel, Schedule Management<br/>PDF and Excel Export via JadwalViewService"]
-
-        Blade["Blade Templating Engine<br/>Server Side Rendering"]
-
+        Routing["Routing & Access Control<br/>(web.php, auth.php, Breeze Auth, Role Check)"]
+        Controllers["Controllers<br/>(CRUD, Upload Excel, Schedule Management,<br/>PDF/Excel Export via JadwalViewService)"]
+        Blade["Blade Templating Engine<br/>(Server-Side Rendering)"]
         Eloquent["Eloquent ORM"]
     end
-
     class Routing,Controllers,Blade,Eloquent laravel
 
     %% Background Jobs
     subgraph InfraLayer ["queue-worker"]
-        Queue["GenerateJadwalJob<br/>Dispatched by JadwalController<br/>Laravel Queue Worker"]
+        Queue["GenerateJadwalJob<br/>(dispatched by JadwalController,<br/>picked up from jobs table in MySQL)"]
     end
-
     class Queue laravel
 
     %% Python Processing Service
     subgraph PythonLayer ["python-app"]
-        API_Cleansing["POST /api/cleansing/master<br/>Multipart Form Data<br/>file_dosen, file_matkul, file_ruang"]
-
-        API_Generate["POST /api/generate-jadwal<br/>JSON Request<br/>pengampu, ruangan, unavailable_days"]
-
-        Cleansing["Data Cleansing Service<br/>Pandas and openpyxl"]
-
-        Scheduler["Scheduling Service<br/>CP SAT Solver<br/>Google OR Tools"]
+        API_Cleansing["POST /api/cleansing/master<br/>(multipart: file_dosen, file_matkul, file_ruang)"]
+        API_Generate["POST /api/generate-jadwal<br/>(JSON: pengampu, ruangan, unavailable_days)"]
+        Cleansing["Data Cleansing Service<br/>(Pandas + openpyxl)"]
+        Scheduler["Scheduling Service<br/>(CP-SAT Solver - Google OR-Tools)"]
     end
-
     class API_Cleansing,API_Generate,Cleansing,Scheduler python
 
     %% Database Layer
     subgraph DBLayer ["Database Layer"]
-        MySQL[("MySQL 8.0<br/>db_penjadwalan")]
-
-        PMA["phpMyAdmin<br/>Host Port 8081"]
+        MySQL[("MySQL 8.0<br/>(db_penjadwalan)")]
+        PMA["phpMyAdmin<br/>(host :8081)"]
     end
-
     class MySQL,PMA database
 
-    %% Browser and Laravel
-    Browser -- "HTTP Port 8000" --> Routing
-
+    %% Browser ↔ Laravel
+    Browser -- "HTTP :8000" --> Routing
     Routing --> Controllers
-
     Controllers --> Blade
-
     Blade -- "HTML Response" --> Browser
 
-    %% Browser Job Status
-    Browser -. "GET /sekjur/jadwal/generate/status<br/>Polling Job Status" .-> Controllers
+    %% Browser polls job status via Laravel web route
+    Browser -. "GET /sekjur/jadwal/generate/status<br/>(polling job status)" .-> Controllers
 
-    %% Laravel and Database
+    %% Laravel ↔ DB (Eloquent + Queue broker)
     Controllers --> Eloquent
+    Eloquent -- "Read / Write" --> MySQL
+    Controllers -. "INSERT INTO jobs<br/>(QUEUE_CONNECTION=database)" .-> MySQL
+    MySQL -. "Queue picks up jobs" .-> Queue
+    Queue -- "Read & Write<br/>(jadwal_generate_jobs, jadwals)" --> MySQL
 
-    Eloquent -- "Read and Write" --> MySQL
-
-    Controllers -. "Insert Job<br/>QUEUE_CONNECTION database" .-> MySQL
-
-    MySQL -. "Job Retrieved by Worker" .-> Queue
-
-    Queue -- "Read and Write<br/>jadwal_generate_jobs and jadwals" --> MySQL
-
-    %% Controller Dispatches Queue
-    Controllers -. "GenerateJadwalJob dispatch" .-> Queue
-
-    %% Upload Excel and FastAPI Cleansing
-    Controllers -- "HTTP POST Multipart<br/>PYTHON_API_URL" --> API_Cleansing
-
+    %% UploadExcelController → FastAPI Cleansing
+    Controllers -- "HTTP POST multipart (PYTHON_API_URL)" --> API_Cleansing
     API_Cleansing --> Cleansing
+    Cleansing -- "cleaned data" --> API_Cleansing
+    API_Cleansing -- "JSON Response<br/>(cleaned dataset)" --> Controllers
 
-    Cleansing -- "Cleaned Data" --> API_Cleansing
-
-    API_Cleansing -- "JSON Response<br/>Cleaned Dataset" --> Controllers
-
-    %% Queue Worker and FastAPI Scheduler
-    Queue -- "HTTP POST JSON<br/>PYTHON_API_URL" --> API_Generate
-
+    %% Queue Worker → FastAPI Generate
+    Queue -- "HTTP POST JSON (PYTHON_API_URL)" --> API_Generate
     API_Generate --> Scheduler
+    Scheduler -- "generated schedule" --> API_Generate
+    API_Generate -- "JSON Response<br/>(jadwal / GAGAL)" --> Queue
 
-    Scheduler -- "Generated Schedule" --> API_Generate
-
-    API_Generate -- "JSON Response<br/>Schedule or Error" --> Queue
-
-    %% Database Management
-    PMA -. "Database Management" .-> MySQL
+    %% DB Management
+    PMA -. "Manage<br/>PMA_HOST: db :3306" .-> MySQL
 ```
 
 ### Database Schema
@@ -539,7 +538,7 @@ sistem-penjadwalan/
 ├── install.sh                      # Script otomatisasi instalasi & setup environment
 ├── README.md                       # Dokumentasi utama proyek
 ├── sistem-penjadwalan-laravel/     # PRIMARY BACKEND & FRONTEND (Laravel 12)
-│   ├── app/                        # Logika inti aplikasi (Controllers, Models, Middleware)
+│   ├── app/                        # Logika inti aplikasi (Controllers, Models, Providers)
 │   ├── artisan                     # CLI bawaan Laravel untuk menjalankan perintah artisan
 │   ├── bootstrap/                  # Skrip inisialisasi framework dan konfigurasi cache
 │   ├── composer.json               # Daftar dependensi utama backend PHP
@@ -561,7 +560,7 @@ sistem-penjadwalan/
 │   ├── tailwind.config.js          # Konfigurasi kustomisasi styling Tailwind CSS
 │   ├── tests/                      # Skrip pengujian otomatis (Pest PHP / PHPUnit)
 │   └── vite.config.js              # Konfigurasi build tool frontend untuk asset bundling
-└── sistem-penjadwalan-python/      # PROCESSING SERVICE (FastAPI 3.12)
+└── sistem-penjadwalan-python/      # PROCESSING SERVICE (FastAPI + Python 3.12)
     ├── __pycache__/                # File cache bytecode Python (ter-generate otomatis)
     ├── Dockerfile                  # Instruksi build container untuk environment Python
     ├── entrypoint.sh               # Script inisialisasi saat container Python berjalan
@@ -668,7 +667,7 @@ Pengguna umum (dosen dan mahasiswa) dapat melihat jadwal tanpa perlu melakukan p
 - **Pencarian Jadwal:** Pada halaman utama (_Landing Page_), gunakan _dropdown_ filter yang tersedia (Program Studi, Dosen Pengajar, Kelas, dan Ruangan) untuk mencari jadwal spesifik.
 - **Menampilkan Jadwal:** Setelah filter dipilih, klik tombol **Tampilkan Jadwal**. Sistem akan menampilkan matriks jadwal dari hari Senin hingga Jumat (8 sesi per hari).
 - **Mengatur Ulang Filter:** Klik tombol **Reset** untuk mengosongkan kembali pilihan pencarian.
-- **Unduh Jadwal:** Hasil jadwal yang tampil dapat diunduh secara luring dengan menekan tombol **Unduh Excel** atau **Unduh PDF**.
+- **Unduh Jadwal:** Hasil jadwal yang tampil dapat diunduh dengan menekan tombol **Unduh Excel** atau **Unduh PDF**.
 - **Akses Sistem (Admin):** Untuk pengelola, klik tombol **Login Sistem** di pojok kanan atas, masukkan _Username_ dan _Password_, lalu klik **Masuk Dashboard**.
 
 #### 2. Sekretaris Jurusan (Operator Utama)
@@ -764,23 +763,23 @@ const response = await fetch(
 ### Running Tests
 
 ```bash
-# Unit tests
-npm run test
-# Integration tests
-npm run test:integration
-# E2E tests
-npm run test:e2e
-# Test coverage
-npm run test:coverage
+# Menjalankan seluruh tes beserta laporan coverage
+pytest --cov=. --cov-report=term-missing
 ```
 
 ### Test Coverage
 
-```
-Statements : XX%
-Branches : XX%
-Functions : XX%
-Lines : XX%
+```text
+Name                           Stmts   Miss  Cover  Missing
+-----------------------------------------------------------
+main.py                           40      2    95%  84-85
+services/__init__.py               0      0   100%
+services/cleansing_service.py    126      8    94%  43, 57-58, 106, 112, 204, 218, 226
+services/scheduler_service.py    298     37    88%  75-76, 219-220, 225, 245-248, 317, 325-328, 363-364, 391-411, 448, 450, 516-520
+test_main.py                      47      0   100%
+test_services.py                 114      0   100%
+-----------------------------------------------------------
+TOTAL                            625     47    92%
 ```
 
 ---

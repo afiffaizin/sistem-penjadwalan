@@ -296,7 +296,7 @@ Session-based (`auth`, `verified` middleware).
 
 ##### Authorization
 
-Role `sekretaris` (middleware closure di `web.php`; selain role ini akan menerima `403 Forbidden`).
+Role `sekretaris` (inline check di `web.php`; selain role ini akan menerima `403 Forbidden`).
 
 ##### Content-Type
 
@@ -341,7 +341,7 @@ Role `sekretaris` (middleware closure di `web.php`; selain role ini akan menerim
 
 | Field     | Type    | Description                                                                    |
 | --------- | ------- | ------------------------------------------------------------------------------ |
-| `status`  | string  | `"success"` atau `"error"`                                                          |
+| `status`  | string  | `"success"` atau `"error"`                                                     |
 | `message` | string  | Pesan status                                                                   |
 | `job_id`  | integer | ID record `JadwalGenerateJob` untuk dipakai polling status (hanya pada sukses) |
 
@@ -421,7 +421,7 @@ None (GET request).
 
 ---
 
-### 🔄 API Flow
+### API Flow
 
 ```mermaid
 flowchart TD
@@ -451,7 +451,7 @@ flowchart TD
     P --> I
 ```
 
-### 📋 API Summary
+### API Summary
 
 | Method | Endpoint                          | Service | Purpose                                                       |
 | ------ | --------------------------------- | ------- | ------------------------------------------------------------- |
