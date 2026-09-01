@@ -432,7 +432,7 @@
                 },
                 dataType: 'json',
                 success: function(data) {
-                    if (data.status === 'ok') {
+                    if (data.status === 'success') {
                         jobStartTime = new Date();
                         showStatus('pending');
                         startPolling();
