@@ -44,7 +44,7 @@
 
 ### Latar Belakang
 
-Penjadwalan perkuliahan adalah proses administratif yang harus mengakomodasi dosen, mata kuliah, kelas, ruang, dan waktu secara bersamaan tanpa menimbulkan konflik. Kompleksitas ini meningkat pada institusi pendidikan yang memiliki banyak program studi dan ruang yang dipakai bersama lintas program studi. Sebagai konteks implementasi awal, sistem ini dikembangkan berdasarkan studi kasus pada sebuah jurusan dengan 5 program studi, 56 dosen, dan 60 mata kuliah per semester, dengan 25 ruang perkuliahan yang dipakai bersama. Sebagian ruang terutama laboratorium praktikum hanya bisa digunakan oleh program studi tertentu, sehingga penjadwalan harus mempertimbangkan kesesuaian antara mata kuliah, program studi, dan ketersediaan fasilitas. Pola kebutuhan seperti ini umum ditemukan pada institusi pendidikan dengan struktur jurusan/program studi serupa.
+Penjadwalan perkuliahan adalah proses administratif yang harus mengakomodasi dosen, mata kuliah, kelas, ruang, dan waktu secara bersamaan tanpa menimbulkan konflik. Kompleksitas penjadwalan meningkat ketika terdapat banyak program studi dengan penggunaan sumber daya yang saling berbagi, terutama ruang perkuliahan dan laboratorium. Selain mempertimbangkan ketersediaan dosen dan ruang, proses penjadwalan juga perlu memperhatikan kesesuaian mata kuliah dengan program studi serta keterbatasan fasilitas yang tersedia. Kondisi tersebut membuat penyusunan jadwal secara manual menjadi proses yang kompleks dan membutuhkan banyak penyesuaian untuk menghasilkan jadwal yang memenuhi berbagai batasan secara bersamaan.
 
 Pada umumnya, proses penyusunan jadwal di institusi semacam ini masih dilakukan secara konvensional: pengelola akademik memeriksa ketersediaan ruang, lalu menyesuaikannya secara manual dengan tugas mengajar masing-masing dosen. Hasilnya dibagikan dalam satu dokumen kepada dosen dan mahasiswa. Cara ini memakan waktu lama dan rentan menimbulkan kesalahan bila tidak diperiksa secara menyeluruh, termasuk konflik jadwal dosen, konflik penggunaan ruang, dan bentrok jadwal mahasiswa.
 
@@ -52,7 +52,7 @@ Kompleksitas bertambah ketika ada permintaan khusus dari dosen, misalnya keterse
 
 Masalah lain terletak pada keterbatasan cara penyajian jadwal: hasil penjadwalan yang ada belum bisa ditampilkan secara fleksibel sesuai kebutuhan pengguna, padahal jadwal idealnya dapat diakses dari berbagai sudut pandang, per dosen, kelas, ruang, maupun program studi.
 
-Berdasarkan permasalahan tersebut, dikembangkan sistem penjadwalan perkuliahan terkomputerisasi untuk menyusun jadwal secara lebih terstruktur dan meminimalkan konflik, yang dirancang agar dapat diadaptasi pada institusi pendidikan lain dengan kebutuhan penjadwalan serupa. Pengembangan pada tahap ini difokuskan pada constraint utama, konflik dosen, konflik penggunaan ruang, dan keterbatasan ruang, sementara akomodasi preferensi waktu mengajar dosen menjadi bagian pengembangan lanjutan di luar cakupan sistem saat ini.
+Berdasarkan permasalahan tersebut, dikembangkan sistem penjadwalan perkuliahan terkomputerisasi untuk menyusun jadwal secara lebih terstruktur dan meminimalkan konflik, yang dirancang agar dapat diadaptasi pada institusi pendidikan lain dengan kebutuhan penjadwalan serupa. Pengembangan pada tahap ini difokuskan pada constraint utama, konflik dosen, konflik penggunaan ruang, dan keterbatasan ruang, sementara akomodasi preferensi waktu mengajar dosen menjadi bagian pengembangan lanjutan di luar cakupan sistem saat ini. Digitalisasi proses ini sejalan dengan upaya modernisasi tata kelola administrasi pendidikan menuju sistem yang lebih efisien, terstruktur, dan berbasis teknologi, bukan lagi bergantung pada proses manual yang memakan waktu.
 
 ### Solusi yang Ditawarkan
 
@@ -84,7 +84,7 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
   - **Kepala Jurusan (Kajur)**, memantau dashboard statistik jurusan dan seluruh jadwal perkuliahan, serta mengunduh jadwal.
   - **Koordinator Program Studi (Kaprodi)**, memantau dashboard statistik dan jadwal perkuliahan pada program studinya masing-masing.
   - **Dosen dan Mahasiswa**, mengakses jadwal melalui landing page dengan filter mata kuliah, ruang, waktu, dan kelas, serta mengunduh jadwal dalam format PDF.
-- 💡 **Value Proposition**: Dibanding proses manual yang bergantung pada pengecekan visual satu per satu, sistem ini menjalankan pencarian kombinasi jadwal berbasis constraint yang memeriksa seluruh aturan (bentrok dosen, ruang, dan kelas) secara bersamaan, sehingga jadwal yang dihasilkan bebas konflik tanpa memerlukan penyesuaian berulang. Sistem juga menyajikan jadwal dari berbagai sudut pandang dengan hak akses yang dipisahkan sesuai peran, sehingga masing-masing pengguna dapat mengakses informasi jadwal yang relevan tanpa harus menyaring satu dokumen tunggal secara manual. Model constraint yang digunakan berbasis pada aturan-aturan penjadwalan yang umum berlaku di institusi pendidikan berstruktur jurusan/program studi, sehingga secara konseptual dapat disesuaikan untuk konteks institusi lain.
+- 💡 **Value Proposition**: Dibanding proses manual yang bergantung pada pengecekan visual satu per satu, sistem ini menjalankan algoritma Constraint Programming yang memeriksa seluruh aturan (bentrok dosen, ruang, dan kelas) secara bersamaan, sehingga jadwal yang dihasilkan bebas konflik tanpa memerlukan penyesuaian berulang. Sistem juga menyajikan jadwal dari berbagai sudut pandang dengan hak akses yang dipisahkan sesuai peran, sehingga masing-masing pengguna dapat mengakses informasi jadwal yang relevan tanpa harus menyaring satu dokumen tunggal secara manual. Model constraint yang digunakan berbasis pada aturan-aturan penjadwalan yang umum berlaku di institusi pendidikan berstruktur jurusan/program studi, sehingga secara konseptual dapat disesuaikan untuk konteks institusi lain.
 
 ---
 
@@ -192,7 +192,7 @@ Hasil penjadwalan dapat ditampilkan dari berbagai sudut pandang (per dosen, kela
 
 ### Video Demo
 
-## 📹 **[Link Video Demo](https://[URL_VIDEO])** _(opsional)_
+## 📹 **[Link Video Demo](https://drive.google.com/file/d/1wt-e_ee1ZMKmNjx47oBSEjNu8ZcollM2/view?usp=sharing)**
 
 ---
 
