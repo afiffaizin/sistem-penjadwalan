@@ -2,13 +2,13 @@
 
 # Sistem Penjadwalan Perkuliahan Otomatis Menggunakan Constraint Programming
 
-### [Tagline Singkat dan Menarik]
+### Otomatis, Efisien, Tanpa Bentrok: Solusi Pintar Penjadwalan Akademik
 
 [![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_Site-success?style=for-the-badge)](https://sisjadwal.afiefnoer.my.id/)
 
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/afiffaizin/sistem-penjadwalan.git)
 
-[![License](https://img.shields.io/badge/License-MIT-bluestyle=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 **Submission for ITECHNO CUP 2026 - Web Development**
 
@@ -689,11 +689,21 @@ Sekretaris Jurusan memiliki kontrol penuh terhadap _master data_ dan otomatisasi
 3.  **Generate Jadwal:** Pada halaman ini, klik **Mulai Auto-Generate** untuk menjalankan mesin optimasi _Constraint Programming_. Tabel pratinjau akan langsung muncul saat proses selesai.
 4.  **Manajemen Hasil Jadwal:** Masuk ke menu **Lihat Jadwal**. Anda dapat memfilter hasil, mengunduh cetakan PDF/Excel, atau menggunakan fitur **Ubah/Tukar Jadwal** untuk memindahkan jadwal secara manual (sistem akan mendeteksi jika terjadi konflik).
 
-##### C. Kelola Master Data & User
+##### C. Request Kaprodi
+
+Melalui menu _Sidebar_, Sekretaris Jurusan dapat melihat Request Kepala Program Studi. Melalui halaman ini, Sekretaris Jurusan dapat melihat daftar request yang masuk dan memastikan informasi tersebut tercatat sebelum proses penjadwalan dilakukan.
+
+1.  Klik menu Request Kaprodi pada Sidebar.
+
+2.  Sistem akan menampilkan daftar request dari Kepala Program Studi yang masuk secara otomatis.
+
+3.  Pastikan seluruh data request telah diperiksa dan tercatat dengan benar sebelum melanjutkan ke proses generate jadwal.
+
+##### D. Kelola Master Data & User
 
 Melalui menu _Sidebar_, Sekretaris Jurusan dapat mengelola data inti sistem:
 
-- **Master Kelas, Dosen, Prodi, Ruang, & Matkul:** Klik tombol **+ Tambah [Data]** untuk memasukkan data baru, atau gunakan ikon **Pensil (Edit)** dan **Tempat Sampah (Hapus)** pada tabel untuk memperbarui/menghapus data.
+- **Master Data Kelas, Dosen, Prodi, Ruang, Matkul & Plotting Dosen:** Klik tombol **+ Tambah [Data]** untuk memasukkan data baru, atau gunakan ikon **Pensil (Edit)** dan **Tempat Sampah (Hapus)** pada tabel untuk memperbarui/menghapus data.
 - **Manajemen User:** Digunakan untuk mendaftarkan akun fungsionaris (Kajur/Kaprodi). Sistem secara otomatis akan menampilkan pilihan program studi jika _role_ yang dipilih adalah Kaprodi.
 
 #### 3. Kepala Jurusan (Pemantau Tingkat Jurusan)
@@ -709,6 +719,15 @@ Koordinator Program Studi (Kaprodi) memiliki wawasan spesifik yang secara otomat
 
 - **Dashboard Spesifik Prodi:** Menampilkan total Dosen Pengampu, Mata Kuliah, dan Rombongan Kelas khusus untuk prodi terkait. Dilengkapi persentase tipe mata kuliah dan grafik _Top 5_ beban mengajar SKS dosen di prodi tersebut.
 - **Monitoring & Ekspor Jadwal:** Masuk ke menu **Monitoring Jadwal** untuk melihat alokasi ruangan dan jadwal kelas prodinya. Kaprodi dapat menyaring jadwal berdasarkan Kelas, Dosen, atau Ruangan, lalu mengekspor datanya melalui tombol **Export Excel/PDF** untuk keperluan laporan.
+- **Hari Tidak Bisa Mengajar:**
+
+1.  Masuk ke menu Hari Tidak Bisa Mengajar pada panel Koordinator Program Studi.
+
+2.  Tentukan ketersediaan dosen dengan mencentang (checkbox) pada nama dosen dan hari yang ingin diatur.
+
+3.  Klik tombol **Simpan Request** untuk mengirimkan pengajuan tersebut.
+
+4.  Data yang telah disimpan akan otomatis menjadi batasan bagi sistem dalam proses penjadwalan agar menghindari penempatan jadwal pada waktu yang tidak dapat dipenuhi oleh dosen.
 
 ---
 
