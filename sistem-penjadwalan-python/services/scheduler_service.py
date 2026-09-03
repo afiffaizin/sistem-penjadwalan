@@ -458,7 +458,7 @@ def generate_jadwal_or_tools(data_pengampu, data_ruangan, unavailable_days=None)
 
     solver = cp_model.CpSolver()
     # --- PERFORMANCE FIXES ---
-    solver.parameters.max_time_in_seconds = 900.0
+    solver.parameters.max_time_in_seconds = 600.0
     solver.parameters.max_memory_in_mb = 2048  # Turunkan agar server tidak OOM/Crash
     solver.parameters.num_workers = 4          # Batasi worker agar CPU & RAM tidak penuh
     solver.parameters.stop_after_first_solution = True # Stop secepatnya begitu nemu jadwal
