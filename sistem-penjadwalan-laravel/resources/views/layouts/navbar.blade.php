@@ -29,16 +29,7 @@
             </div>
       </div>
 
-        <div class="h-6 w-px bg-gray-300 hidden md:block"></div>
 
-        <div class="flex items-center gap-4 text-gray-400">
-            <button class="hover:text-amber-500 transition">
-                <i class="fa-regular fa-bell text-lg"></i>
-            </button>
-            <a href="{{ asset('templates/Manual Book_SI Penjadwalan Kuliah JKB.pdf') }}" download class="flex items-center gap-3 px-4 py-2.5 text-sm hover:text-amber-600 transition font-medium">
-                <i class="fa-regular fa-circle-question text-lg"></i>
-            </a>
-        </div>
     </div>
 </header>
 
