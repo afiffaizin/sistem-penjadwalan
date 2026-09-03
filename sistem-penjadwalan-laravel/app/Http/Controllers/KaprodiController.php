@@ -132,6 +132,9 @@ class KaprodiController extends Controller
         $selectedTahunAjarId = $request->input('tahun_ajar_id', $defaultTahunAjarId);
 
         $dosens = Dosen::where('homebase_prodi_id', $user->prodi_id)
+            ->when($selectedTahunAjarId, function ($query) use ($selectedTahunAjarId) {
+                $query->where('tahun_ajar_id', $selectedTahunAjarId);
+            })
             ->orderBy('nama')
             ->get();
 
@@ -177,6 +180,7 @@ class KaprodiController extends Controller
         $tahunAjarId = $validated['tahun_ajar_id'];
         $hariByDosen = $validated['hari'] ?? [];
         $allowedDosenIds = Dosen::where('homebase_prodi_id', $user->prodi_id)
+            ->where('tahun_ajar_id', $tahunAjarId)
             ->pluck('id')
             ->toArray();
 
