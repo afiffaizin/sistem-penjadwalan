@@ -297,7 +297,16 @@ class JadwalController extends Controller
 
     public function exportExcel(Request $request, JadwalViewService $jadwalViewService)
     {
-        $data = $jadwalViewService->build($request);
+        if (!$request->filled('tahun_ajar_id') || !auth()->check()) {
+            $data = $jadwalViewService->buildPublic($request);
+        } else {
+            $data = $jadwalViewService->build($request);
+        }
+
+        if (!array_key_exists('tampilPerKelas', $data)) {
+            $data['tampilPerKelas'] = !$request->filled('dosen_id') && !$request->filled('kelas_id') && !$request->filled('ruang_id');
+        }
+
         $namaFile = 'Hasil_Jadwal_Kuliah_' . date('Y-m-d_H-i-s') . '.xlsx';
 
         return Excel::download(new JadwalExport($data), $namaFile);
@@ -305,7 +314,16 @@ class JadwalController extends Controller
 
     public function exportPdf(Request $request, JadwalViewService $jadwalViewService)
     {
-        $data = $jadwalViewService->build($request);
+        if (!$request->filled('tahun_ajar_id') || !auth()->check()) {
+            $data = $jadwalViewService->buildPublic($request);
+        } else {
+            $data = $jadwalViewService->build($request);
+        }
+
+        if (!array_key_exists('tampilPerKelas', $data)) {
+            $data['tampilPerKelas'] = !$request->filled('dosen_id') && !$request->filled('kelas_id') && !$request->filled('ruang_id');
+        }
+
         $pdf = Pdf::loadView('exports.jadwal_pdf', $data)->setPaper('a4', 'landscape');
         $namaFile = 'Hasil_Jadwal_Kuliah_' . date('Y-m-d_H-i-s') . '.pdf';
 
