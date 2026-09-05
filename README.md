@@ -12,7 +12,7 @@
 
 **Submission for ITECHNO CUP 2026 - Web Development**
 
-**By 404 Forbidden**
+**By 403 Forbidden**
 
 ## </div>
 
@@ -815,6 +815,6 @@ lebih lanjut.
 ---
 
 <div align="center">
- **Made with ❤️ by 404 forbidden for ITECHNO CUP 2026**
+ **Made with ❤️ by 403 forbidden for ITECHNO CUP 2026**
 
 </div>
